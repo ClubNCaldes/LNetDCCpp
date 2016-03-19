@@ -1,0 +1,13 @@
+encender
+<1>
+apagar
+<0>
+Registrar eh500 sin velocidad
+<t 1 33 0 0>
+
+encender f0
+<f 33 144>
+encender f0 y f2
+<f 33 146>
+apagar todas
+<f 33 128>
