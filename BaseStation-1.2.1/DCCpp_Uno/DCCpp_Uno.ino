@@ -173,22 +173,15 @@ DCC++ BASE STATION is configured through the Config.h file that contains all use
 #include "PacketRegister.h"
 #include "CurrentMonitor.h"
 #include "SerialCommand.h"
-#include "Accessories.h"
-#include "EEStore.h"
 #include "Config.h"
-#include "Comm.h"
+
+#define DEBUG
 
 //DGS Loconet Slot table for locomotives
 rwSlotDataMsg LnetSlots[MAX_MAIN_REGISTERS];
 lnMsg *LnPacket;
 
 // SET UP COMMUNICATIONS INTERFACE - FOR STANDARD SERIAL, NOTHING NEEDS TO BE DONE
-
-#if COMM_TYPE == 1
-  byte mac[] =  MAC_ADDRESS;                                // Create MAC address (to be used for DHCP when initializing server)
-  EthernetServer INTERFACE(ETHERNET_PORT);                  // Create and instance of an EnternetServer
-#endif
-
 
 
 // NEXT DECLARE GLOBAL OBJECTS TO PROCESS AND STORE DCC PACKETS AND MONITOR TRACK CURRENTS.
@@ -197,8 +190,8 @@ lnMsg *LnPacket;
 volatile RegisterList mainRegs(MAX_MAIN_REGISTERS);    // create list of registers for MAX_MAIN_REGISTER Main Track Packets
 volatile RegisterList progRegs(2);                     // create a shorter list of only two registers for Program Track Packets
 
-CurrentMonitor mainMonitor(CURRENT_MONITOR_PIN_MAIN,"<p2>");  // create monitor for current on Main Track
-CurrentMonitor progMonitor(CURRENT_MONITOR_PIN_PROG,"<p3>");  // create monitor for current on Program Track
+CurrentMonitor mainMonitor(CURRENT_MONITOR_PIN_MAIN,(char*)"<p2>");  // create monitor for current on Main Track
+CurrentMonitor progMonitor(CURRENT_MONITOR_PIN_PROG,(char*)"<p3>");  // create monitor for current on Program Track
 
 
 
@@ -211,28 +204,40 @@ void processIncomingLoconetCommand()
   switch (opcode)
   {
     case OPC_GPON: //Global ON command
-      
+      #ifdef DEBUG
+        Serial.println("# GLOBAL ON #");
+      #endif
+      mainMonitor.setGlobalPower(ON);
       break;
     case OPC_GPOFF: // Global OFF command
-      
+      #ifdef DEBUG
+        Serial.println("# GLOBAL OFF #");
+      #endif      
+      mainMonitor.setGlobalPower(OFF);
       break;
     case OPC_LOCO_ADR: // Request of Loco
+      #ifdef DEBUG
+        Serial.println("# OPC_LOCO_ADR Request of Loco #");
+      #endif
       //Check if it is in slot already and also gets the first possible free slot
       //Slot 0 is not examined as it is used as BT2 slot (TODO not implemented)
       
       for (n=1;n<MAX_MAIN_REGISTERS;n++)
       {
-        if ((LnetSlots[n].stat & LOCOSTAT_MASK == LOCO_FREE) && n==MAX_MAIN_REGISTERS) 
+        if (((LnetSlots[n].stat & LOCOSTAT_MASK) == LOCO_FREE) && n<MAX_MAIN_REGISTERS) 
           freeslot=n;
-        else
-          if (LnetSlots[n].adr==LnPacket->la.adr_lo) break;
+        else if (LnetSlots[n].adr==LnPacket->la.adr_lo) 
+          break;
       }
   
       //Loco not found and no free slots
       if (n==MAX_MAIN_REGISTERS && freeslot==MAX_MAIN_REGISTERS)
       {
-         LocoNet.sendLongAck(0);
-         break;
+        #ifdef DEBUG
+        Serial.println("# !LONGACK! No free slots for loco #");
+        #endif 
+        LocoNet.sendLongAck(0);
+        break;
       }
       //Loco not found, add to the first free slot speed 0, direction front, F0 ON
       if (n==MAX_MAIN_REGISTERS) 
@@ -252,9 +257,15 @@ void processIncomingLoconetCommand()
         LnetSlots[n].id1=0;
         LnetSlots[n].id2=0;
       }    
+      #ifdef DEBUG
+      Serial.println("# SLOT SENT #");
+      #endif 
       LocoNet.send ((lnMsg*)&LnetSlots[n]);
       break;
     case OPC_MOVE_SLOTS:
+      #ifdef DEBUG
+        Serial.println("# OPC_MOVE_SLOTS #");
+      #endif
       //Check slot range (0 DISPATCH NOT SUPPORTED, DIFFERENT NOT SUPPORTED)
       if (LnPacket->sm.dest>=MAX_MAIN_REGISTERS || LnPacket->sm.src>=MAX_MAIN_REGISTERS || LnPacket->sm.dest!=LnPacket->sm.src || LnPacket->sm.dest<1 || LnPacket->sm.src<1)
       {
@@ -269,6 +280,9 @@ void processIncomingLoconetCommand()
       mainRegs.setThrottle(s);
       break;
     case OPC_SLOT_STAT1:
+      #ifdef DEBUG
+        Serial.println("# OPC_SLOT_STAT1 #");
+      #endif
       LnetSlots[LnPacket->ss.slot].stat = LnPacket->ss.stat;
       //<t REGISTER CAB SPEED DIRECTION>
       //char s[20];
@@ -276,18 +290,27 @@ void processIncomingLoconetCommand()
       //mainRegs.setThrottle(s);
       break;
     case OPC_LOCO_SPD:
+      #ifdef DEBUG
+        Serial.println("# OPC_LOCO_SPD #");
+      #endif
       LnetSlots[LnPacket->lsp.slot].spd = LnPacket->lsp.spd;
       //<t REGISTER CAB SPEED DIRECTION>
       sprintf(s,"%d %d %d %d",LnPacket->lsp.slot,LnetSlots[LnPacket->lsp.slot].adr,LnetSlots[LnPacket->lsp.slot].spd,LnetSlots[LnPacket->lsp.slot].dirf);
       mainRegs.setThrottle(s);
       break;
     case OPC_LOCO_DIRF:
+      #ifdef DEBUG
+        Serial.println("# OPC_LOCO_DIRF #");
+      #endif
       LnetSlots[LnPacket->ldf.slot].dirf = LnPacket->ldf.dirf;
       //<t REGISTER CAB SPEED DIRECTION>
-      sprintf(s,"%d %d %d %d",LnPacket->ldf.slot,LnetSlots[LnPacket->ldf.slot].adr,LnetSlots[LnPacket->ldf.slot].spd,LnetSlots[LnPacket->ldf.slot].dirf);
+      sprintf(s,"%d %d %d %d",LnPacket->ldf.slot,LnetSlots[LnPacket->ldf.slot].adr,LnetSlots[LnPacket->ldf.slot].spd,bitRead(LnetSlots[LnPacket->ldf.slot].dirf,5));      
       mainRegs.setThrottle(s);
       break;
     case OPC_LOCO_SND:
+      #ifdef DEBUG
+        Serial.println("# OPC_LOCO_SND #");
+      #endif
       LnetSlots[LnPacket->ls.slot].snd = LnPacket->ls.snd;
       //<t REGISTER CAB SPEED DIRECTION>
       //char s[20];
@@ -296,19 +319,22 @@ void processIncomingLoconetCommand()
       break;
     default:
       // ignore the message...
-      Serial.print("RX: ");
-      uint8_t msgLen = getLnMsgSize(LnPacket); 
-      for (uint8_t x = 0; x < msgLen; x++)
-      {
-        uint8_t val = LnPacket->data[x];
-          // Print a leading 0 if less than 16 to make 2 HEX digits
-        if(val < 16)
-          Serial.print('0');
-          
-        Serial.print(val, HEX);
-        Serial.print(' ');
-      }
-      Serial.println(" <");
+      #ifdef DEBUG
+        Serial.println("# !! IGNORE MESSAGE !! #");      
+        Serial.print("RX: ");
+        uint8_t msgLen = getLnMsgSize(LnPacket); 
+        for (uint8_t x = 0; x < msgLen; x++)
+        {
+          uint8_t val = LnPacket->data[x];
+            // Print a leading 0 if less than 16 to make 2 HEX digits
+          if(val < 16)
+            Serial.print('0');
+            
+          Serial.print(val, HEX);
+          Serial.print(' ');
+        }
+        Serial.println(" <");
+      #endif
   }
 }
 
@@ -321,7 +347,10 @@ void loop(){
   // Check for any received LocoNet packets
   LnPacket = LocoNet.receive();
   if (LnPacket)
+  {
+    Serial.println("# Loconet incomming #");
     processIncomingLoconetCommand();
+  }
   
   SerialCommand::process();              // check for, and process, and new serial commands
   
@@ -330,10 +359,11 @@ void loop(){
     progMonitor.check();     
   }
 
-  if (digitalRead(PWON_LED_PIN)==LOW)
+  if ((mainMonitor.globalPowerON==OFF) && (digitalRead(PWON_BUTTON_PIN)==LOW))
     mainMonitor.setGlobalPower(ON);
-  if (digitalRead(PWOFF_LED_PIN)==LOW)
+  else if ((mainMonitor.globalPowerON==ON) && (digitalRead(PWOFF_BUTTON_PIN)==LOW))
     mainMonitor.setGlobalPower(OFF);
+    
   if (digitalRead(EMERGENCY_STOP_PIN)==LOW)
     mainMonitor.setGlobalPower(EMERGENCY);
   
@@ -345,17 +375,21 @@ void loop(){
 
 void setup(){  
 
-  LocoNet.init(7);
+  //Indication pins
+  pinMode(PWON_LED_PIN, OUTPUT);
+  digitalWrite(PWON_LED_PIN,HIGH);
+  pinMode(PWOFF_LED_PIN, OUTPUT);
+  digitalWrite(PWOFF_LED_PIN,HIGH);
+  pinMode(EMERGENCY_LED_PIN, OUTPUT);
+  digitalWrite(EMERGENCY_LED_PIN,HIGH);
+  pinMode(PWON_BUTTON_PIN,INPUT_PULLUP);
+  pinMode(PWOFF_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(EMERGENCY_STOP_PIN, INPUT_PULLUP);
+  
+  LocoNet.init(47);
   
   Serial.begin(115200);            // configure serial interface
   Serial.flush();
-
-  #ifdef SDCARD_CS
-    pinMode(SDCARD_CS,OUTPUT);
-    digitalWrite(SDCARD_CS,HIGH);     // Deselect the SD card
-  #endif
-
-  EEStore::init();                                           // initialize and load Turnout and Sensor definitions stored in EEPROM
 
   Serial.print("<iDCC++ BASE STATION MEGA FOR ARDUINO ");      // Print Status to Serial Line regardless of COMM_TYPE setting so use can open Serial Monitor and check configurtion 
   Serial.print(ARDUINO_TYPE);
@@ -366,25 +400,9 @@ void setup(){
   Serial.print(" ");
   Serial.print(__TIME__);
   Serial.print(">");
-
-  #if COMM_TYPE == 1
-    Ethernet.begin(mac);                      // Start networking using DHCP to get an IP Address
-    INTERFACE.begin();
-  #endif
-             
+            
   SerialCommand::init(&mainRegs, &progRegs, &mainMonitor);   // create structure to read and parse commands from serial line
 
-  Serial.print("<N");
-  Serial.print(COMM_TYPE);
-  Serial.print(": ");
-
-  #if COMM_TYPE == 0
-    Serial.print("SERIAL>");
-  #elif COMM_TYPE == 1
-    Serial.print(Ethernet.localIP());
-    Serial.print(">");
-  #endif
-  
   // CONFIGURE TIMER_1 TO OUTPUT 50% DUTY CYCLE DCC SIGNALS ON OC1B INTERRUPT PINS
   
   // Direction Pin for Motor Shield Channel A - MAIN OPERATIONS TRACK
@@ -424,48 +442,6 @@ void setup(){
       
   bitSet(TIMSK1,OCIE1B);    // enable interrupt vector for Timer 1 Output Compare B Match (OCR1B)    
 
-  // CONFIGURE EITHER TIMER_0 (UNO) OR TIMER_3 (MEGA) TO OUTPUT 50% DUTY CYCLE DCC SIGNALS ON OC0B (UNO) OR OC3B (MEGA) INTERRUPT PINS
-  
-#ifdef ARDUINO_AVR_UNO      // Configuration for UNO
-  
-  // Directon Pin for Motor Shield Channel B - PROGRAMMING TRACK
-  // Controlled by Arduino 8-bit TIMER 0 / OC0B Interrupt Pin
-  // Values for 8-bit OCR0A and OCR0B registers calibrated for 1:64 prescale at 16 MHz clock frequency
-  // Resulting waveforms are 200 microseconds for a ZERO bit and 116 microseconds for a ONE bit with as-close-as-possible to 50% duty cycle
-
-  #define DCC_ZERO_BIT_TOTAL_DURATION_TIMER0 49
-  #define DCC_ZERO_BIT_PULSE_DURATION_TIMER0 24
-
-  #define DCC_ONE_BIT_TOTAL_DURATION_TIMER0 28
-  #define DCC_ONE_BIT_PULSE_DURATION_TIMER0 14
-  
-  pinMode(DIRECTION_MOTOR_CHANNEL_PIN_B,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
-  digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_B,LOW);
-
-  pinMode(DCC_SIGNAL_PIN_PROG,OUTPUT);      // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-B OF MOTOR CHANNEL-B
-
-  bitSet(TCCR0A,WGM00);     // set Timer 0 to FAST PWM, with TOP=OCR0A
-  bitSet(TCCR0A,WGM01);
-  bitSet(TCCR0B,WGM02);
-     
-  bitSet(TCCR0A,COM0B1);    // set Timer 0, OC0B (pin 5) to inverting toggle (actual direction is arbitrary)
-  bitSet(TCCR0A,COM0B0);
-
-  bitClear(TCCR0B,CS02);    // set Timer 0 prescale=64
-  bitSet(TCCR0B,CS01);
-  bitSet(TCCR0B,CS00);
-    
-  OCR0A=DCC_ONE_BIT_TOTAL_DURATION_TIMER0;
-  OCR0B=DCC_ONE_BIT_PULSE_DURATION_TIMER0;
-  
-  pinMode(SIGNAL_ENABLE_PIN_PROG,OUTPUT);   // master enable for motor channel B
-
-  progRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1    
-      
-  bitSet(TIMSK0,OCIE0B);    // enable interrupt vector for Timer 0 Output Compare B Match (OCR0B)
-
-#else      // Configuration for MEGA
-
   // Directon Pin for Motor Shield Channel B - PROGRAMMING TRACK
   // Controlled by Arduino 16-bit TIMER 3 / OC3B Interrupt Pin
   // Values for 16-bit OCR3A and OCR3B registers calibrated for 1:1 prescale at 16 MHz clock frequency
@@ -502,8 +478,7 @@ void setup(){
   progRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1    
       
   bitSet(TIMSK3,OCIE3B);    // enable interrupt vector for Timer 3 Output Compare B Match (OCR3B)    
-  
-#endif
+
 
   //DGS initialize slots to FREE
   int n;
@@ -524,16 +499,10 @@ void setup(){
     LnetSlots[n].id1=0;
     LnetSlots[n].id2=0;
   }
-
-  //Indication pins
-  pinMode(PWON_LED_PIN, OUTPUT);
-  digitalWrite(PWON_LED_PIN,LOW);
-  pinMode(PWOFF_LED_PIN, OUTPUT);
-  digitalWrite(PWOFF_LED_PIN,LOW);
-  pinMode(PWON_BUTTON_PIN,INPUT_PULLUP);
-  pinMode(PWOFF_BUTTON_PIN, INPUT_PULLUP);
-  pinMode(EMERGENCY_STOP_PIN, INPUT_PULLUP);
   
+  delay(1000);
+  mainMonitor.setGlobalPower(OFF);
+    
 } // setup
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -568,32 +537,32 @@ void setup(){
 
 // THE INTERRUPT CODE MACRO:  R=REGISTER LIST (mainRegs or progRegs), and N=TIMER (0 or 1)
 
-#define DCC_SIGNAL(R,N) \
-  if(R.currentBit==R.currentReg->activePacket->nBits){    /* IF no more bits in this DCC Packet */ \
-    R.currentBit=0;                                       /*   reset current bit pointer and determine which Register and Packet to process next--- */ \   
-    if(R.nRepeat>0 && R.currentReg==R.reg){               /*   IF current Register is first Register AND should be repeated */ \
-      R.nRepeat--;                                        /*     decrement repeat count; result is this same Packet will be repeated */ \
-    } else if(R.nextReg!=NULL){                           /*   ELSE IF another Register has been updated */ \
-      R.currentReg=R.nextReg;                             /*     update currentReg to nextReg */ \
-      R.nextReg=NULL;                                     /*     reset nextReg to NULL */ \
-      R.tempPacket=R.currentReg->activePacket;            /*     flip active and update Packets */ \        
-      R.currentReg->activePacket=R.currentReg->updatePacket; \
-      R.currentReg->updatePacket=R.tempPacket; \
-    } else{                                               /*   ELSE simply move to next Register */ \
-      if(R.currentReg==R.maxLoadedReg)                    /*     BUT IF this is last Register loaded */ \
-        R.currentReg=R.reg;                               /*       first reset currentReg to base Register, THEN */ \
-      R.currentReg++;                                     /*     increment current Register (note this logic causes Register[0] to be skipped when simply cycling through all Registers) */ \
-    }                                                     /*   END-ELSE */ \
-  }                                                       /* END-IF: currentReg, activePacket, and currentBit should now be properly set to point to next DCC bit */ \
-                                                          \
-  if(R.currentReg->activePacket->buf[R.currentBit/8] & R.bitMask[R.currentBit%8]){     /* IF bit is a ONE */ \
-    OCR ## N ## A=DCC_ONE_BIT_TOTAL_DURATION_TIMER ## N;                               /*   set OCRA for timer N to full cycle duration of DCC ONE bit */ \
-    OCR ## N ## B=DCC_ONE_BIT_PULSE_DURATION_TIMER ## N;                               /*   set OCRB for timer N to half cycle duration of DCC ONE but */ \
-  } else{                                                                              /* ELSE it is a ZERO */ \
-    OCR ## N ## A=DCC_ZERO_BIT_TOTAL_DURATION_TIMER ## N;                              /*   set OCRA for timer N to full cycle duration of DCC ZERO bit */ \
-    OCR ## N ## B=DCC_ZERO_BIT_PULSE_DURATION_TIMER ## N;                              /*   set OCRB for timer N to half cycle duration of DCC ZERO bit */ \
-  }                                                                                    /* END-ELSE */ \ 
-                                                                                       \ 
+#define DCC_SIGNAL(R,N)\
+  if(R.currentBit==R.currentReg->activePacket->nBits){    /* IF no more bits in this DCC Packet */\
+    R.currentBit=0;                                       /*   reset current bit pointer and determine which Register and Packet to process next--- */\   
+    if(R.nRepeat>0 && R.currentReg==R.reg){               /*   IF current Register is first Register AND should be repeated */\
+      R.nRepeat--;                                        /*     decrement repeat count; result is this same Packet will be repeated */\
+    } else if(R.nextReg!=NULL){                           /*   ELSE IF another Register has been updated */\
+      R.currentReg=R.nextReg;                             /*     update currentReg to nextReg */\
+      R.nextReg=NULL;                                     /*     reset nextReg to NULL */\
+      R.tempPacket=R.currentReg->activePacket;            /*     flip active and update Packets */\ 
+      R.currentReg->activePacket=R.currentReg->updatePacket;\
+      R.currentReg->updatePacket=R.tempPacket;\
+    } else{                                               /*   ELSE simply move to next Register */\
+      if(R.currentReg==R.maxLoadedReg)                    /*     BUT IF this is last Register loaded */\
+        R.currentReg=R.reg;                               /*       first reset currentReg to base Register, THEN */\
+      R.currentReg++;                                     /*     increment current Register (note this logic causes Register[0] to be skipped when simply cycling through all Registers) */\
+    }                                                     /*   END-ELSE */\
+  }                                                       /* END-IF: currentReg, activePacket, and currentBit should now be properly set to point to next DCC bit */\
+\
+  if(R.currentReg->activePacket->buf[R.currentBit/8] & R.bitMask[R.currentBit%8]){     /* IF bit is a ONE */\
+    OCR ## N ## A=DCC_ONE_BIT_TOTAL_DURATION_TIMER ## N;                               /*   set OCRA for timer N to full cycle duration of DCC ONE bit */\
+    OCR ## N ## B=DCC_ONE_BIT_PULSE_DURATION_TIMER ## N;                               /*   set OCRB for timer N to half cycle duration of DCC ONE but */\
+  } else{                                                                              /* ELSE it is a ZERO */\
+    OCR ## N ## A=DCC_ZERO_BIT_TOTAL_DURATION_TIMER ## N;                              /*   set OCRA for timer N to full cycle duration of DCC ZERO bit */\
+    OCR ## N ## B=DCC_ZERO_BIT_PULSE_DURATION_TIMER ## N;                              /*   set OCRB for timer N to half cycle duration of DCC ZERO bit */\
+  }                                                                                    /* END-ELSE */\ 
+\ 
   R.currentBit++;                                         /* point to next bit in current Packet */  
   
 ///////////////////////////////////////////////////////////////////////////////
