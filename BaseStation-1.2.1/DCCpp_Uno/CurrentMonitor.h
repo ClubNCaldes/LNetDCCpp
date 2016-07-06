@@ -17,6 +17,7 @@ Part of DCC++ BASE STATION for the Arduino
 #define EMERGENCY_STOP_PIN 32        // external emergency stop
 #define PWON_LED_PIN 33                  // green led for POWER ON
 #define PWOFF_LED_PIN 34                 // red led for POWER OFF
+#define EMERGENCY_LED_PIN 35
   
 #define OFF 0
 #define ON 1
@@ -25,11 +26,7 @@ Part of DCC++ BASE STATION for the Arduino
 #define  CURRENT_SAMPLE_SMOOTHING   0.01
 #define  CURRENT_SAMPLE_MAX         300
 
-#ifdef ARDUINO_AVR_UNO                        // Configuration for UNO
-  #define  CURRENT_SAMPLE_TIME        10
-#else                                         // Configuration for MEGA    
-  #define  CURRENT_SAMPLE_TIME        1
-#endif
+#define  CURRENT_SAMPLE_TIME        1
 
 struct CurrentMonitor{  
   static long int sampleTime;

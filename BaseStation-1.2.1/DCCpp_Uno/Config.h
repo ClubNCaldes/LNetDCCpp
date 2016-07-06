@@ -22,35 +22,3 @@ Part of DCC++ BASE STATION for the Arduino
 
 #define MAX_MAIN_REGISTERS 12
 
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// DEFINE COMMUNICATIONS INTERFACE TYPE
-//
-//  0 = Built-in Serial Port
-//  1 = Arduino Ethernet/SD Card Shield
-
-#define COMM_TYPE   0
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// DEFINE NAME OF ETHERNET LIBRARY TO INCLUDE (DIFFERENT SHIELDS MAY USE THEIR OWN LIBRARIES)
-
-//#define ETHERNET_LIBRARY  <EthernetV2_0.h>        // https://github.com/Seeed-Studio/Ethernet_Shield_W5200
-#define ETHERNET_LIBRARY  <Ethernet2.h>        // https://github.com/arduino-org/Arduino
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// DEFINE PORT TO USE FOR ETHERNET COMMUNICATIONS INTERFACE
-//
-
-#define ETHERNET_PORT 2560
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// DEFINE MAC ADDRESS ARRAY FOR ETHERNET COMMUNICATIONS INTERFACE
-//
-
-#define MAC_ADDRESS {  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xEF }
-
-/////////////////////////////////////////////////////////////////////////////////////
-

@@ -9,7 +9,6 @@ Part of DCC++ BASE STATION for the Arduino
 
 #include "DCCpp_Uno.h"
 #include "CurrentMonitor.h"
-#include "Comm.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -42,6 +41,7 @@ void CurrentMonitor::setGlobalPower(uint8_t pPower)
     digitalWrite(SIGNAL_ENABLE_PIN_MAIN,HIGH);
     digitalWrite(PWON_LED_PIN, HIGH);
     digitalWrite(PWOFF_LED_PIN, LOW);
+    digitalWrite(EMERGENCY_LED_PIN, LOW);
     this->globalPowerON=true;
     INTERFACE.println("<p1>");
   }
@@ -50,7 +50,8 @@ void CurrentMonitor::setGlobalPower(uint8_t pPower)
     digitalWrite(SIGNAL_ENABLE_PIN_PROG,LOW);
     digitalWrite(SIGNAL_ENABLE_PIN_MAIN,LOW);
     digitalWrite(PWON_LED_PIN, LOW);
-    digitalWrite(PWOFF_LED_PIN, LOW);
+    digitalWrite(PWOFF_LED_PIN, HIGH);
+    digitalWrite(EMERGENCY_LED_PIN, LOW);
     this->globalPowerON=false;
     INTERFACE.println("<p0>");
   }
@@ -59,7 +60,8 @@ void CurrentMonitor::setGlobalPower(uint8_t pPower)
     digitalWrite(SIGNAL_ENABLE_PIN_PROG,LOW);
     digitalWrite(SIGNAL_ENABLE_PIN_MAIN,LOW);
     digitalWrite(PWON_LED_PIN, LOW);
-    digitalWrite(PWOFF_LED_PIN, HIGH);
+    digitalWrite(PWOFF_LED_PIN, LOW);
+    digitalWrite(EMERGENCY_LED_PIN, HIGH);
     this->globalPowerON=false;
     INTERFACE.println("<p0>");
   }

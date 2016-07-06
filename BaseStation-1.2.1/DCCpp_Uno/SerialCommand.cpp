@@ -16,11 +16,6 @@ Part of DCC++ BASE STATION for the Arduino
 
 #include "SerialCommand.h"
 #include "DCCpp_Uno.h"
-#include "Accessories.h"
-#include "Sensor.h"
-#include "Outputs.h"
-#include "EEStore.h"
-#include "Comm.h"
 
 extern int __heap_start, *__brkval;
 
@@ -42,11 +37,10 @@ void SerialCommand::init(volatile RegisterList *_mRegs, volatile RegisterList *_
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void SerialCommand::process(){
+void SerialCommand::process()
+{
   char c;
-    
-  #if COMM_TYPE == 0
-
+  
     while(INTERFACE.available()>0){    // while there is data on the serial line
      c=INTERFACE.read();
      if(c=='<')                    // start of new command
@@ -55,26 +49,7 @@ void SerialCommand::process(){
        parse(commandString);                    
      else if(strlen(commandString)<MAX_COMMAND_LENGTH)    // if comandString still has space, append character just read from serial line
        sprintf(commandString,"%s%c",commandString,c);     // otherwise, character is ignored (but continue to look for '<' or '>')
-    } // while
-  
-  #elif COMM_TYPE == 1
-
-    EthernetClient client=INTERFACE.available();
-
-    if(client){
-      while(client.connected() && client.available()){        // while there is data on the network
-      c=client.read();
-      if(c=='<')                    // start of new command
-        sprintf(commandString,"");
-      else if(c=='>')               // end of new command
-        parse(commandString);                    
-      else if(strlen(commandString)<MAX_COMMAND_LENGTH)    // if comandString still has space, append character just read from network
-        sprintf(commandString,"%s%c",commandString,c);     // otherwise, character is ignored (but continue to look for '<' or '>')
-      } // while
     }
-
-  #endif
-
 } // SerialCommand:process
    
 ///////////////////////////////////////////////////////////////////////////////
@@ -179,7 +154,7 @@ void SerialCommand::parse(char *com){
  *   *** SEE ACCESSORIES.CPP FOR COMPLETE INFO ON THE DIFFERENT VARIATIONS OF THE "T" COMMAND
  *   USED TO CREATE/EDIT/REMOVE/SHOW TURNOUT DEFINITIONS
  */
-      Turnout::parse(com+1);
+      /*Turnout::parse(com+1); TODO NOT IMPLEMENTED */
       break;
 
 /***** CREATE/EDIT/REMOVE/SHOW & OPERATE AN OUTPUT PIN  ****/    
@@ -196,7 +171,7 @@ void SerialCommand::parse(char *com){
  *   *** SEE OUTPUTS.CPP FOR COMPLETE INFO ON THE DIFFERENT VARIATIONS OF THE "O" COMMAND
  *   USED TO CREATE/EDIT/REMOVE/SHOW TURNOUT DEFINITIONS
  */
-      Output::parse(com+1);
+      /*Output::parse(com+1); TODO NOT IMPLEMENTED */
       break;
       
 /***** CREATE/EDIT/REMOVE/SHOW A SENSOR  ****/    
@@ -206,7 +181,7 @@ void SerialCommand::parse(char *com){
  *   *** SEE SENSOR.CPP FOR COMPLETE INFO ON THE DIFFERENT VARIATIONS OF THE "S" COMMAND
  *   USED TO CREATE/EDIT/REMOVE/SHOW SENSOR DEFINITIONS
  */
-      Sensor::parse(com+1);
+      /* Sensor::parse(com+1); TODO NOT IMPLEMENTED */
       break;
 
 /***** SHOW STATUS OF ALL SENSORS ****/
@@ -215,7 +190,7 @@ void SerialCommand::parse(char *com){
 /*
  *    returns: the status of each sensor ID in the form <Q ID> (active) or <q ID> (not active)
  */
-      Sensor::status();
+      /* Sensor::status(); TODO NOT IMPLEMENTED */
       break;
 
 /***** WRITE CONFIGURATION VARIABLE BYTE TO ENGINE DECODER ON MAIN OPERATIONS TRACK  ****/    
@@ -377,20 +352,9 @@ void SerialCommand::parse(char *com){
       INTERFACE.print(__TIME__);
       INTERFACE.print(">");
 
-      INTERFACE.print("<N");
-      INTERFACE.print(COMM_TYPE);
-      INTERFACE.print(": ");
-
-      #if COMM_TYPE == 0
-        INTERFACE.print("SERIAL>");
-      #elif COMM_TYPE == 1
-        INTERFACE.print(Ethernet.localIP());
-        INTERFACE.print(">");
-      #endif
-      
-      Turnout::show();
-      Output::show();
-                        
+      INTERFACE.print("<N2: ");      
+      INTERFACE.print("LOCONET>");
+                              
       break;
 
 /***** STORE SETTINGS IN EEPROM  ****/    
@@ -402,14 +366,7 @@ void SerialCommand::parse(char *com){
  *    returns: <e nTurnouts nSensors>
 */
      
-    EEStore::store();
-    INTERFACE.print("<e ");
-    INTERFACE.print(EEStore::eeStore->data.nTurnouts);
-    INTERFACE.print(" ");
-    INTERFACE.print(EEStore::eeStore->data.nSensors);
-    INTERFACE.print(" ");
-    INTERFACE.print(EEStore::eeStore->data.nOutputs);
-    INTERFACE.print(">");
+    /*EEStore::store(); TODO*/
     break;
     
 /***** CLEAR SETTINGS IN EEPROM  ****/    
@@ -421,7 +378,7 @@ void SerialCommand::parse(char *com){
  *    returns: <O>
 */
      
-    EEStore::clear();
+    /*EEStore::clear(); TODO*/
     INTERFACE.print("<O>");
     break;
 
