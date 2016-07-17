@@ -16,7 +16,7 @@ CurrentMonitor::CurrentMonitor(int pin, char *msg){
     this->pin=pin;
     this->msg=msg;
     current=0;
-    globalPowerON=false;
+    setGlobalPower(OFF);
   } // CurrentMonitor::CurrentMonitor
   
 boolean CurrentMonitor::checkTime(){
@@ -42,7 +42,7 @@ void CurrentMonitor::setGlobalPower(uint8_t pPower)
     digitalWrite(PWON_LED_PIN, HIGH);
     digitalWrite(PWOFF_LED_PIN, LOW);
     digitalWrite(EMERGENCY_LED_PIN, LOW);
-    this->globalPowerON=true;
+    this->globalPowerON=ON;
     INTERFACE.println("<p1>");
   }
   else if (pPower==OFF)
@@ -52,7 +52,7 @@ void CurrentMonitor::setGlobalPower(uint8_t pPower)
     digitalWrite(PWON_LED_PIN, LOW);
     digitalWrite(PWOFF_LED_PIN, HIGH);
     digitalWrite(EMERGENCY_LED_PIN, LOW);
-    this->globalPowerON=false;
+    this->globalPowerON=OFF;
     INTERFACE.println("<p0>");
   }
   else if (pPower==EMERGENCY)
@@ -62,11 +62,11 @@ void CurrentMonitor::setGlobalPower(uint8_t pPower)
     digitalWrite(PWON_LED_PIN, LOW);
     digitalWrite(PWOFF_LED_PIN, LOW);
     digitalWrite(EMERGENCY_LED_PIN, HIGH);
-    this->globalPowerON=false;
+    this->globalPowerON=EMERGENCY;
     INTERFACE.println("<p0>");
   }
 }
 
 long int CurrentMonitor::sampleTime=0;
-bool CurrentMonitor::globalPowerON=false;
+byte CurrentMonitor::globalPowerON=OFF;
 

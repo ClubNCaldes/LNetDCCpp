@@ -174,15 +174,9 @@ DCC++ BASE STATION is configured through the Config.h file that contains all use
 #include "CurrentMonitor.h"
 #include "SerialCommand.h"
 #include "Config.h"
+#include "LNetCmdStation.h"
 
 #define DEBUG
-
-//DGS Loconet Slot table for locomotives
-rwSlotDataMsg LnetSlots[MAX_MAIN_REGISTERS];
-lnMsg *LnPacket;
-
-// SET UP COMMUNICATIONS INTERFACE - FOR STANDARD SERIAL, NOTHING NEEDS TO BE DONE
-
 
 // NEXT DECLARE GLOBAL OBJECTS TO PROCESS AND STORE DCC PACKETS AND MONITOR TRACK CURRENTS.
 // NOTE REGISTER LISTS MUST BE DECLARED WITH "VOLATILE" QUALIFIER TO ENSURE THEY ARE PROPERLY UPDATED BY INTERRUPT ROUTINES
@@ -193,150 +187,8 @@ volatile RegisterList progRegs(2);                     // create a shorter list 
 CurrentMonitor mainMonitor(CURRENT_MONITOR_PIN_MAIN,(char*)"<p2>");  // create monitor for current on Main Track
 CurrentMonitor progMonitor(CURRENT_MONITOR_PIN_PROG,(char*)"<p3>");  // create monitor for current on Program Track
 
+LNetCmdStation locoNetCmdStation; // create class for command station loconet processing
 
-
-void processIncomingLoconetCommand() 
-{  
-  int n; int freeslot=MAX_MAIN_REGISTERS;
-  unsigned char opcode = (int)LnPacket->sz.command;
-  char s[20];
-  
-  switch (opcode)
-  {
-    case OPC_GPON: //Global ON command
-      #ifdef DEBUG
-        Serial.println("# GLOBAL ON #");
-      #endif
-      mainMonitor.setGlobalPower(ON);
-      break;
-    case OPC_GPOFF: // Global OFF command
-      #ifdef DEBUG
-        Serial.println("# GLOBAL OFF #");
-      #endif      
-      mainMonitor.setGlobalPower(OFF);
-      break;
-    case OPC_LOCO_ADR: // Request of Loco
-      #ifdef DEBUG
-        Serial.println("# OPC_LOCO_ADR Request of Loco #");
-      #endif
-      //Check if it is in slot already and also gets the first possible free slot
-      //Slot 0 is not examined as it is used as BT2 slot (TODO not implemented)
-      
-      for (n=1;n<MAX_MAIN_REGISTERS;n++)
-      {
-        if (((LnetSlots[n].stat & LOCOSTAT_MASK) == LOCO_FREE) && n<MAX_MAIN_REGISTERS) 
-          freeslot=n;
-        else if (LnetSlots[n].adr==LnPacket->la.adr_lo) 
-          break;
-      }
-  
-      //Loco not found and no free slots
-      if (n==MAX_MAIN_REGISTERS && freeslot==MAX_MAIN_REGISTERS)
-      {
-        #ifdef DEBUG
-        Serial.println("# !LONGACK! No free slots for loco #");
-        #endif 
-        LocoNet.sendLongAck(0);
-        break;
-      }
-      //Loco not found, add to the first free slot speed 0, direction front, F0 ON
-      if (n==MAX_MAIN_REGISTERS) 
-      {
-        n=freeslot;
-        LnetSlots[n].command=0xE7;
-        LnetSlots[n].mesg_size=0x0E;
-        LnetSlots[n].slot=n;
-        LnetSlots[n].stat=LOCO_IDLE | DEC_MODE_128;
-        LnetSlots[n].adr=LnPacket->la.adr_lo;
-        LnetSlots[n].spd=0;
-        LnetSlots[n].dirf=DIRF_F0;
-        LnetSlots[n].trk &= GTRK_POWER & GTRK_MLOK1; // POWER ON & Loconet 1.1 by default
-        LnetSlots[n].ss2=0;
-        LnetSlots[n].adr2=0;
-        LnetSlots[n].snd=0;
-        LnetSlots[n].id1=0;
-        LnetSlots[n].id2=0;
-      }    
-      #ifdef DEBUG
-      Serial.println("# SLOT SENT #");
-      #endif 
-      LocoNet.send ((lnMsg*)&LnetSlots[n]);
-      break;
-    case OPC_MOVE_SLOTS:
-      #ifdef DEBUG
-        Serial.println("# OPC_MOVE_SLOTS #");
-      #endif
-      //Check slot range (0 DISPATCH NOT SUPPORTED, DIFFERENT NOT SUPPORTED)
-      if (LnPacket->sm.dest>=MAX_MAIN_REGISTERS || LnPacket->sm.src>=MAX_MAIN_REGISTERS || LnPacket->sm.dest!=LnPacket->sm.src || LnPacket->sm.dest<1 || LnPacket->sm.src<1)
-      {
-        LocoNet.sendLongAck(0);
-        return;
-      }
-      
-      LnetSlots[LnPacket->sm.dest].stat|=LOCO_IN_USE;    
-      LocoNet.send ((lnMsg*)&LnetSlots[LnPacket->sm.dest]);
-      //<t REGISTER CAB SPEED DIRECTION>
-      sprintf(s,"%d %d %d %d",LnPacket->sm.dest,LnetSlots[LnPacket->sm.dest].adr,LnetSlots[LnPacket->sm.dest].spd,LnetSlots[LnPacket->sm.dest].dirf);
-      mainRegs.setThrottle(s);
-      break;
-    case OPC_SLOT_STAT1:
-      #ifdef DEBUG
-        Serial.println("# OPC_SLOT_STAT1 #");
-      #endif
-      LnetSlots[LnPacket->ss.slot].stat = LnPacket->ss.stat;
-      //<t REGISTER CAB SPEED DIRECTION>
-      //char s[20];
-      //sprintf(s,"%d %d %d %d",LnPacket->ss.slot,LnetSlots[LnPacket->ss.slot].adr,LnetSlots[LnPacket->ss.slot].spd,LnetSlots[LnPacket->ss.slot].dirf);
-      //mainRegs.setThrottle(s);
-      break;
-    case OPC_LOCO_SPD:
-      #ifdef DEBUG
-        Serial.println("# OPC_LOCO_SPD #");
-      #endif
-      LnetSlots[LnPacket->lsp.slot].spd = LnPacket->lsp.spd;
-      //<t REGISTER CAB SPEED DIRECTION>
-      sprintf(s,"%d %d %d %d",LnPacket->lsp.slot,LnetSlots[LnPacket->lsp.slot].adr,LnetSlots[LnPacket->lsp.slot].spd,LnetSlots[LnPacket->lsp.slot].dirf);
-      mainRegs.setThrottle(s);
-      break;
-    case OPC_LOCO_DIRF:
-      #ifdef DEBUG
-        Serial.println("# OPC_LOCO_DIRF #");
-      #endif
-      LnetSlots[LnPacket->ldf.slot].dirf = LnPacket->ldf.dirf;
-      //<t REGISTER CAB SPEED DIRECTION>
-      sprintf(s,"%d %d %d %d",LnPacket->ldf.slot,LnetSlots[LnPacket->ldf.slot].adr,LnetSlots[LnPacket->ldf.slot].spd,bitRead(LnetSlots[LnPacket->ldf.slot].dirf,5));      
-      mainRegs.setThrottle(s);
-      break;
-    case OPC_LOCO_SND:
-      #ifdef DEBUG
-        Serial.println("# OPC_LOCO_SND #");
-      #endif
-      LnetSlots[LnPacket->ls.slot].snd = LnPacket->ls.snd;
-      //<t REGISTER CAB SPEED DIRECTION>
-      //char s[20];
-      //sprintf(s,"%d %d %d %d",LnPacket->ls.slot,LnetSlots[LnPacket->ls.slot].adr,LnetSlots[LnPacket->ls.slot].spd,LnetSlots[LnPacket->ls.slot].dirf);
-      //mainRegs.setThrottle(s);
-      break;
-    default:
-      // ignore the message...
-      #ifdef DEBUG
-        Serial.println("# !! IGNORE MESSAGE !! #");      
-        Serial.print("RX: ");
-        uint8_t msgLen = getLnMsgSize(LnPacket); 
-        for (uint8_t x = 0; x < msgLen; x++)
-        {
-          uint8_t val = LnPacket->data[x];
-            // Print a leading 0 if less than 16 to make 2 HEX digits
-          if(val < 16)
-            Serial.print('0');
-            
-          Serial.print(val, HEX);
-          Serial.print(' ');
-        }
-        Serial.println(" <");
-      #endif
-  }
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // MAIN ARDUINO LOOP
@@ -344,13 +196,7 @@ void processIncomingLoconetCommand()
 
 void loop(){
 
-  // Check for any received LocoNet packets
-  LnPacket = LocoNet.receive();
-  if (LnPacket)
-  {
-    Serial.println("# Loconet incomming #");
-    processIncomingLoconetCommand();
-  }
+  locoNetCmdStation.checkPacket();    // check for incomming Loconet packets
   
   SerialCommand::process();              // check for, and process, and new serial commands
   
@@ -359,13 +205,21 @@ void loop(){
     progMonitor.check();     
   }
 
-  if ((mainMonitor.globalPowerON==OFF) && (digitalRead(PWON_BUTTON_PIN)==LOW))
-    mainMonitor.setGlobalPower(ON);
-  else if ((mainMonitor.globalPowerON==ON) && (digitalRead(PWOFF_BUTTON_PIN)==LOW))
-    mainMonitor.setGlobalPower(OFF);
-    
   if (digitalRead(EMERGENCY_STOP_PIN)==LOW)
+  {
     mainMonitor.setGlobalPower(EMERGENCY);
+    locoNetCmdStation.sendOPC_GP(EMERGENCY);
+  }
+  else if ((mainMonitor.globalPowerON==OFF) && (digitalRead(PWON_BUTTON_PIN)==LOW))
+  {
+    mainMonitor.setGlobalPower(ON);
+    locoNetCmdStation.sendOPC_GP(ON);
+  }
+  else if ((mainMonitor.globalPowerON==ON) && (digitalRead(PWOFF_BUTTON_PIN)==LOW))
+  {
+    mainMonitor.setGlobalPower(OFF);
+    locoNetCmdStation.sendOPC_GP(OFF);
+  }  
   
 } // loop
 
@@ -402,6 +256,8 @@ void setup(){
   Serial.print(">");
             
   SerialCommand::init(&mainRegs, &progRegs, &mainMonitor);   // create structure to read and parse commands from serial line
+  
+  locoNetCmdStation.init(&mainRegs, &progRegs, &mainMonitor);   // create structure to read and parse commands from Loconet
 
   // CONFIGURE TIMER_1 TO OUTPUT 50% DUTY CYCLE DCC SIGNALS ON OC1B INTERRUPT PINS
   
@@ -480,25 +336,6 @@ void setup(){
   bitSet(TIMSK3,OCIE3B);    // enable interrupt vector for Timer 3 Output Compare B Match (OCR3B)    
 
 
-  //DGS initialize slots to FREE
-  int n;
-  for (n=0;n<MAX_MAIN_REGISTERS;n++)
-  {
-    LnetSlots[n].command=0xE7;
-    LnetSlots[n].mesg_size=0x0E;
-    LnetSlots[n].slot=n+1;
-    LnetSlots[n].stat=LOCO_FREE | DEC_MODE_128;
-    
-    LnetSlots[n].adr=0;
-    LnetSlots[n].spd=0;
-    LnetSlots[n].dirf=0;
-    LnetSlots[n].trk = GTRK_POWER & GTRK_MLOK1; // POWER ON & Loconet 1.1 by default
-    LnetSlots[n].ss2=0;
-    LnetSlots[n].adr2=0;
-    LnetSlots[n].snd=0;
-    LnetSlots[n].id1=0;
-    LnetSlots[n].id2=0;
-  }
   
   delay(1000);
   mainMonitor.setGlobalPower(OFF);
@@ -589,6 +426,4 @@ ISR(TIMER3_COMPB_vect){              // set interrupt service for OCR3B of TIMER
 
 
 ///////////////////////////////////////////////////////////////////////////////
-
-
 

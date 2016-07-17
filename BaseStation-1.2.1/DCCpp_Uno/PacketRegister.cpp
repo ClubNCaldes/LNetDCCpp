@@ -125,8 +125,9 @@ void RegisterList::setThrottle(char *s) volatile{
        
   loadPacket(nReg,b,nB,0,1);
   
-  INTERFACE.print("<T");
+  INTERFACE.print("<t ");
   INTERFACE.print(nReg); INTERFACE.print(" ");
+  INTERFACE.print(cab); INTERFACE.print(" ");
   INTERFACE.print(tSpeed); INTERFACE.print(" ");
   INTERFACE.print(tDirection);
   INTERFACE.print(">");
@@ -160,7 +161,13 @@ void RegisterList::setFunction(char *s) volatile{
     b[nB++]=(fByte | 0xDE) & 0xDF;     // for safety this guarantees that first byte will either be 0xDE (for F13-F20) or 0xDF (for F21-F28)
     b[nB++]=eByte;
   }
-    
+  
+  INTERFACE.print("<f ");  
+  INTERFACE.print(cab); INTERFACE.print(" ");
+  INTERFACE.print(fByte); INTERFACE.print(" ");
+  INTERFACE.print(eByte);
+  INTERFACE.print(">");
+  
   loadPacket(0,b,nB,4,1);
     
 } // RegisterList::setFunction()
