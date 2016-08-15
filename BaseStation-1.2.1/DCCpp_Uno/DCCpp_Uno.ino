@@ -175,8 +175,11 @@ DCC++ BASE STATION is configured through the Config.h file that contains all use
 #include "SerialCommand.h"
 #include "Config.h"
 #include "LNetCmdStation.h"
+#include <LiquidCrystal.h>
 
 #define DEBUG
+
+LiquidCrystal lcd(44, 45, 40, 41, 42, 43);           // select the pins used on the LCD panel
 
 // NEXT DECLARE GLOBAL OBJECTS TO PROCESS AND STORE DCC PACKETS AND MONITOR TRACK CURRENTS.
 // NOTE REGISTER LISTS MUST BE DECLARED WITH "VOLATILE" QUALIFIER TO ENSURE THEY ARE PROPERLY UPDATED BY INTERRUPT ROUTINES
@@ -189,6 +192,7 @@ CurrentMonitor progMonitor(CURRENT_MONITOR_PIN_PROG,(char*)"<p3>");  // create m
 
 LNetCmdStation locoNetCmdStation; // create class for command station loconet processing
 
+int timestoshow=0;
 
 ///////////////////////////////////////////////////////////////////////////////
 // MAIN ARDUINO LOOP
@@ -201,8 +205,18 @@ void loop(){
   SerialCommand::process();              // check for, and process, and new serial commands
   
   if(CurrentMonitor::checkTime()){      // if sufficient time has elapsed since last update, check current draw on Main and Program Tracks 
-    mainMonitor.check();
-    progMonitor.check();     
+    if (mainMonitor.check() || progMonitor.check())
+      locoNetCmdStation.sendOPC_GP(EMERGENCY);
+
+    timestoshow++;
+    if (timestoshow>2000)
+    {
+      lcd.setCursor(0,1);             // set the LCD cursor   position 
+      lcd.print("Main:");   lcd.print(map(mainMonitor.current,0, CURRENT_SAMPLE_MAX, 0, 100));
+      lcd.print("% Pr:"); lcd.print(map(progMonitor.current,0, CURRENT_SAMPLE_MAX, 0, 100)); lcd.print("%     ");
+      timestoshow=0;  
+    }
+    
   }
 
   if (digitalRead(EMERGENCY_STOP_PIN)==LOW)
@@ -210,12 +224,12 @@ void loop(){
     mainMonitor.setGlobalPower(EMERGENCY);
     locoNetCmdStation.sendOPC_GP(EMERGENCY);
   }
-  else if ((mainMonitor.globalPowerON==OFF) && (digitalRead(PWON_BUTTON_PIN)==LOW))
+  else if ((mainMonitor.globalPowerON!=ON) && (digitalRead(PWON_BUTTON_PIN)==LOW))
   {
     mainMonitor.setGlobalPower(ON);
     locoNetCmdStation.sendOPC_GP(ON);
   }
-  else if ((mainMonitor.globalPowerON==ON) && (digitalRead(PWOFF_BUTTON_PIN)==LOW))
+  else if ((mainMonitor.globalPowerON!=OFF) && (digitalRead(PWOFF_BUTTON_PIN)==LOW))
   {
     mainMonitor.setGlobalPower(OFF);
     locoNetCmdStation.sendOPC_GP(OFF);
@@ -229,7 +243,18 @@ void loop(){
 
 void setup(){  
 
+  lcd.begin(16, 2);               // start the library
+  lcd.setCursor(0,0);             // set the LCD cursor   position 
+  lcd.print("DCC++ Loconet");  // print a simple message on the LCD
+  lcd.setCursor(0,1);             // set the LCD cursor   position 
+  lcd.print("ClubNCaldes (c)");  // print a simple message on the LCD
+   
   //Indication pins
+  pinMode(PROG_RELAY1, OUTPUT);
+  digitalWrite(PROG_RELAY1,LOW);
+  pinMode(PROG_RELAY2, OUTPUT);
+  digitalWrite(PROG_RELAY2,LOW);
+  
   pinMode(PWON_LED_PIN, OUTPUT);
   digitalWrite(PWON_LED_PIN,HIGH);
   pinMode(PWOFF_LED_PIN, OUTPUT);
@@ -257,7 +282,7 @@ void setup(){
             
   SerialCommand::init(&mainRegs, &progRegs, &mainMonitor);   // create structure to read and parse commands from serial line
   
-  locoNetCmdStation.init(&mainRegs, &progRegs, &mainMonitor);   // create structure to read and parse commands from Loconet
+  locoNetCmdStation.init(&mainRegs, &progRegs, &mainMonitor, &lcd);   // create structure to read and parse commands from Loconet
 
   // CONFIGURE TIMER_1 TO OUTPUT 50% DUTY CYCLE DCC SIGNALS ON OC1B INTERRUPT PINS
   
@@ -337,9 +362,9 @@ void setup(){
 
 
   
-  delay(1000);
+  delay(2000);
   mainMonitor.setGlobalPower(OFF);
-    
+  
 } // setup
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -410,20 +435,9 @@ ISR(TIMER1_COMPB_vect){              // set interrupt service for OCR1B of TIMER
   DCC_SIGNAL(mainRegs,1)
 }
 
-#ifdef ARDUINO_AVR_UNO      // Configuration for UNO
-
-ISR(TIMER0_COMPB_vect){              // set interrupt service for OCR1B of TIMER-0 which flips direction bit of Motor Shield Channel B controlling Prog Track
-  DCC_SIGNAL(progRegs,0)
-}
-
-#else      // Configuration for MEGA
-
 ISR(TIMER3_COMPB_vect){              // set interrupt service for OCR3B of TIMER-3 which flips direction bit of Motor Shield Channel B controlling Prog Track
   DCC_SIGNAL(progRegs,3)
 }
-
-#endif
-
 
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -28,6 +28,8 @@ Part of DCC++ BASE STATION for the Arduino
 #define PWON_LED_PIN 33                  // green led for POWER ON
 #define PWOFF_LED_PIN 34                 // red led for POWER OFF
 #define EMERGENCY_LED_PIN 35
+#define PROG_RELAY1 36
+#define PROG_RELAY2 37
 
 struct CurrentMonitor{  
   static long int sampleTime;
@@ -37,7 +39,7 @@ struct CurrentMonitor{
   char *msg;
   CurrentMonitor(int, char *);
   static boolean checkTime();
-  void check();
+  boolean check();
   void setGlobalPower(uint8_t);
 };
 

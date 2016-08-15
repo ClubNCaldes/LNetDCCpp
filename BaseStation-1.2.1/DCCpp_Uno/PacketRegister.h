@@ -53,7 +53,7 @@ struct RegisterList{
   void setFunction(char *) volatile;  
   void setAccessory(char *) volatile;
   void writeTextPacket(char *) volatile;
-  void readCV(char *) volatile;
+  int readCV(char *) volatile;
   void writeCVByte(char *) volatile;
   void writeCVBit(char *) volatile;
   void writeCVByteMain(char *) volatile;

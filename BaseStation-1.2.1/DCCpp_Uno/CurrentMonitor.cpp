@@ -26,11 +26,13 @@ boolean CurrentMonitor::checkTime(){
   return(true);  
 } // CurrentMonitor::checkTime
   
-void CurrentMonitor::check(){
+boolean CurrentMonitor::check(){
   current=analogRead(pin)*CURRENT_SAMPLE_SMOOTHING+current*(1.0-CURRENT_SAMPLE_SMOOTHING);        // compute new exponentially-smoothed current
   if(current>CURRENT_SAMPLE_MAX && digitalRead(SIGNAL_ENABLE_PIN_PROG)==HIGH){                    // current overload and Prog Signal is on (or could have checked Main Signal, since both are always on or off together)
     setGlobalPower(EMERGENCY);
+    return(true);
   } 
+  return(false);
 } // CurrentMonitor::check  
 
 void CurrentMonitor::setGlobalPower(uint8_t pPower)
@@ -57,6 +59,7 @@ void CurrentMonitor::setGlobalPower(uint8_t pPower)
   }
   else if (pPower==EMERGENCY)
   {
+    Serial.println(" EMERGENCY ");
     digitalWrite(SIGNAL_ENABLE_PIN_PROG,LOW);
     digitalWrite(SIGNAL_ENABLE_PIN_MAIN,LOW);
     digitalWrite(PWON_LED_PIN, LOW);

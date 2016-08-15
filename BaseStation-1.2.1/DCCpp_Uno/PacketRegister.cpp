@@ -212,14 +212,14 @@ void RegisterList::writeTextPacket(char *s) volatile{
   
 ///////////////////////////////////////////////////////////////////////////////
 
-void RegisterList::readCV(char *s) volatile{
+int RegisterList::readCV(char *s) volatile{
   byte bRead[4];
   int bValue;
   int c,d,base;
   int cv, callBack, callBackSub;
 
   if(sscanf(s,"%d %d %d",&cv,&callBack,&callBackSub)!=3)          // cv = 1-1024
-    return;    
+    return(-1);    
   cv--;                              // actual CV addresses are cv-1 (0-1023)
   
   bRead[0]=0x78+(highByte(cv)&0x03);   // any CV>1023 will become modulus(1024) due to bit-mask of 0x03
@@ -285,7 +285,8 @@ void RegisterList::readCV(char *s) volatile{
   INTERFACE.print(" ");
   INTERFACE.print(bValue);
   INTERFACE.print(">");
-        
+
+  return(bValue);
 } // RegisterList::readCV()
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -324,7 +325,10 @@ void RegisterList::writeCVByte(char *s) volatile{
   loadPacket(0,resetPacket,2,1);          // forces code to wait until all repeats of bRead are completed (and decoder begins to respond)
     
   for(int j=0;j<ACK_SAMPLE_COUNT;j++){
+    Serial.println(CURRENT_MONITOR_PIN_PROG);
     c=(analogRead(CURRENT_MONITOR_PIN_PROG)-base)*ACK_SAMPLE_SMOOTHING+c*(1.0-ACK_SAMPLE_SMOOTHING);
+    Serial.println(c);
+    Serial.println(ACK_SAMPLE_THRESHOLD);
     if(c>ACK_SAMPLE_THRESHOLD)
       d=1;
   }
