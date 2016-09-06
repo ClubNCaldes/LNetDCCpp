@@ -180,6 +180,15 @@ DCC++ BASE STATION is configured through the Config.h file that contains all use
 #define DEBUG
 
 LiquidCrystal lcd(44, 45, 40, 41, 42, 43);           // select the pins used on the LCD panel
+// define some values used by the panel and buttons
+int lcd_key     = 0;
+int adc_key_in  = 0;
+#define btnRIGHT  0
+#define btnUP     1
+#define btnDOWN   2
+#define btnLEFT   3
+#define btnSELECT 4
+#define btnNONE   5
 
 // NEXT DECLARE GLOBAL OBJECTS TO PROCESS AND STORE DCC PACKETS AND MONITOR TRACK CURRENTS.
 // NOTE REGISTER LISTS MUST BE DECLARED WITH "VOLATILE" QUALIFIER TO ENSURE THEY ARE PROPERLY UPDATED BY INTERRUPT ROUTINES
@@ -206,7 +215,11 @@ void loop(){
   
   if(CurrentMonitor::checkTime()){      // if sufficient time has elapsed since last update, check current draw on Main and Program Tracks 
     if (mainMonitor.check() || progMonitor.check())
+    {
       locoNetCmdStation.sendOPC_GP(EMERGENCY);
+      lcd.setCursor(0,0);             // set the LCD cursor   position 
+      lcd.print(" EMERGENCY STOP ");
+    }
 
     timestoshow++;
     if (timestoshow>2000)
@@ -219,20 +232,28 @@ void loop(){
     
   }
 
+  lcd_key = read_LCD_buttons();  // read the buttons
+  
   if (digitalRead(EMERGENCY_STOP_PIN)==LOW)
   {
     mainMonitor.setGlobalPower(EMERGENCY);
     locoNetCmdStation.sendOPC_GP(EMERGENCY);
+    lcd.setCursor(0,0);             // set the LCD cursor   position 
+    lcd.print(" EMERGENCY STOP ");
   }
-  else if ((mainMonitor.globalPowerON!=ON) && (digitalRead(PWON_BUTTON_PIN)==LOW))
+  else if ((mainMonitor.globalPowerON!=ON) && (digitalRead(PWON_BUTTON_PIN)==LOW || lcd_key==btnLEFT))
   {
     mainMonitor.setGlobalPower(ON);
     locoNetCmdStation.sendOPC_GP(ON);
+    lcd.setCursor(0,0);             // set the LCD cursor   position 
+    lcd.print(" POWER ON       ");
   }
-  else if ((mainMonitor.globalPowerON!=OFF) && (digitalRead(PWOFF_BUTTON_PIN)==LOW))
+  else if ((mainMonitor.globalPowerON!=OFF) && (digitalRead(PWOFF_BUTTON_PIN)==LOW || lcd_key==btnRIGHT))
   {
     mainMonitor.setGlobalPower(OFF);
     locoNetCmdStation.sendOPC_GP(OFF);
+    lcd.setCursor(0,0);             // set the LCD cursor   position 
+    lcd.print(" POWER OFF      ");
   }  
   
 } // loop
@@ -251,9 +272,9 @@ void setup(){
    
   //Indication pins
   pinMode(PROG_RELAY1, OUTPUT);
-  digitalWrite(PROG_RELAY1,LOW);
+  digitalWrite(PROG_RELAY1,HIGH);
   pinMode(PROG_RELAY2, OUTPUT);
-  digitalWrite(PROG_RELAY2,LOW);
+  digitalWrite(PROG_RELAY2,HIGH);
   
   pinMode(PWON_LED_PIN, OUTPUT);
   digitalWrite(PWON_LED_PIN,HIGH);
@@ -366,6 +387,32 @@ void setup(){
   mainMonitor.setGlobalPower(OFF);
   
 } // setup
+
+/*************************************************************************/
+/*            KEYPAD FUNCTIONS                                           */
+/*************************************************************************/
+int read_LCD_buttons()
+{
+ adc_key_in = analogRead(15);      // read the value from the sensor 
+
+ // my buttons when read are centered at these valies: 0, 144, 329, 504, 741
+ // we add approx 50 to those values and check to see if we are close
+ if (adc_key_in > 1000) return btnNONE; // We make this the 1st option for speed reasons since it will be the most likely result
+ // For V1.1 us this threshold
+ /*if (adc_key_in < 50)   return btnRIGHT;  
+ if (adc_key_in < 250)  return btnUP; 
+ if (adc_key_in < 450)  return btnDOWN; 
+ if (adc_key_in < 650)  return btnLEFT; 
+ if (adc_key_in < 850)  return btnSELECT;  */
+
+ // For V1.0 comment the other threshold and use the one below:
+ if (adc_key_in < 50)   return btnRIGHT;  
+ if (adc_key_in < 195)  return btnUP; 
+ if (adc_key_in < 380)  return btnDOWN; 
+ if (adc_key_in < 555)  return btnLEFT; 
+ if (adc_key_in < 790)  return btnSELECT;   
+ return btnNONE;  // when all others fail, return this...
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // DEFINE THE INTERRUPT LOGIC THAT GENERATES THE DCC SIGNAL

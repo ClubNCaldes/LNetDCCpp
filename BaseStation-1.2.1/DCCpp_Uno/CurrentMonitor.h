@@ -25,9 +25,9 @@ Part of DCC++ BASE STATION for the Arduino
 #define PWON_BUTTON_PIN 30               // power on push button
 #define PWOFF_BUTTON_PIN 31              // power off push button
 #define EMERGENCY_STOP_PIN 32        // external emergency stop
-#define PWON_LED_PIN 33                  // green led for POWER ON
-#define PWOFF_LED_PIN 34                 // red led for POWER OFF
-#define EMERGENCY_LED_PIN 35
+#define PWON_LED_PIN 34                  // green led for POWER ON
+#define PWOFF_LED_PIN 35                 // red led for POWER OFF
+#define EMERGENCY_LED_PIN 33
 #define PROG_RELAY1 36
 #define PROG_RELAY2 37
 
