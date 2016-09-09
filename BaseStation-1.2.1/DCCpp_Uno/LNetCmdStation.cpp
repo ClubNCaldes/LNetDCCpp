@@ -53,8 +53,7 @@ void LNetCmdStation::checkPacket()
   // Check for any received LocoNet packets
   LnPacket = LocoNet.receive();
   if (LnPacket)
-  {
-    Serial.println("# Loconet incomming #");
+  {    
     processIncomingLoconetCommand();
   }
 }
@@ -87,6 +86,7 @@ void LNetCmdStation::processIncomingLoconetCommand()
   int cvnum=0;
   int cvvalue=0;
 
+  #ifdef DEBUG 
   Serial.print("RX: ");
   uint8_t msgLen = getLnMsgSize(LnPacket); 
   for (uint8_t x = 0; x < msgLen; x++)
@@ -100,6 +100,7 @@ void LNetCmdStation::processIncomingLoconetCommand()
     Serial.print(' ');
   }
   Serial.println(" <");
+  #endif
   
   switch (opcode)
   {
@@ -194,7 +195,7 @@ void LNetCmdStation::processIncomingLoconetCommand()
       //<t REGISTER CAB SPEED DIRECTION>
       myAddress=locoNetSlots[LnPacket->sm.dest].adr+(locoNetSlots[LnPacket->sm.dest].adr2<<7);
       sprintf(s,"%d %d %d %d",LnPacket->sm.dest,myAddress,locoNetSlots[LnPacket->sm.dest].spd,bitRead(locoNetSlots[LnPacket->sm.dest].dirf,5));
-      Serial.print("====>> ");Serial.println(s);
+
       mRegs->setThrottle(s);
       // <f CAB BYTE1 [BYTE2]>
       //   To set functions F0-F4 on (=1) or off (=0):
@@ -382,8 +383,9 @@ void LNetCmdStation::processIncomingLoconetCommand()
       if ((LnPacket->pt.pcmd&PCMD_RW) == 0 && (LnPacket->pt.pcmd&PCMD_OPS_MODE)==0)
       {
         LocoNet.send(OPC_LONG_ACK,0x7F,1);
+        #ifdef DEBUG
         Serial.print("Read on programming track CV "); Serial.println(cvnum);        
-        
+        #endif
         /* <R CV CALLBACKNUM CALLBACKSUB>
         *    CV: the number of the Configuration Variable memory location in the decoder to read from (1-1024)
         *    CALLBACKNUM: an arbitrary integer (0-32767) that is ignored by the Base Station and is simply echoed back in the output - useful for external programs that call this function
@@ -393,7 +395,7 @@ void LNetCmdStation::processIncomingLoconetCommand()
         *    where VALUE is a number from 0-255 as read from the requested CV, or -1 if read could not be verified
         */    
         sprintf(s,"%d 11 12",cvnum);
-        Serial.println(s);
+        
         cvvalue=pRegs->readCV(s);
         //<0xEF>,<0E>,<7C>,<PCMD>,<0>    ,<HOPSA>,<LOPSA>,<TRK>,<CVH>,<CVL>,<DATA7>,<0>,<0>,<CHK>
         //<0xE7>,<0E>,<7C>,<PCMD>,<PSTAT>,<HOPSA>,<LOPSA>,<TRK>,<CVH>,<CVL>,<DATA7>,<0>,<0>,<CHK>
@@ -409,7 +411,9 @@ void LNetCmdStation::processIncomingLoconetCommand()
       if ((LnPacket->pt.pcmd&PCMD_RW)>0 && (LnPacket->pt.pcmd&PCMD_OPS_MODE)==0)
       {
         LocoNet.send(OPC_LONG_ACK,0x7F,1);
+        #ifdef DEBUG
         Serial.print("Write on programming track CV ");Serial.print(cvnum);Serial.print(" VALUE ");Serial.println(cvvalue);                
+        #endif
         /* <W CV VALUE CALLBACKNUM CALLBACKSUB>
         *    CV: the number of the Configuration Variable memory location in the decoder to write to (1-1024)
         *    VALUE: the value to be written to the Configuration Variable memory location (0-255) 
@@ -419,8 +423,7 @@ void LNetCmdStation::processIncomingLoconetCommand()
         *    returns: <r CALLBACKNUM|CALLBACKSUB|CV Value)
         *    where VALUE is a number from 0-255 as read from the requested CV, or -1 if verificaiton read fails
         */
-        sprintf(s,"%d %d 11 11",cvnum,cvvalue);
-        Serial.println(s);
+        sprintf(s,"%d %d 11 11",cvnum,cvvalue);        
         pRegs->writeCVByte(s);
         cvvalue=pRegs->readCV(s);
         LnPacket->pt.command=OPC_SL_RD_DATA;
@@ -439,8 +442,9 @@ void LNetCmdStation::processIncomingLoconetCommand()
 
     default:
       // ignore the message...
-      
+        #ifdef DEBUG
         Serial.println("# !! IGNORE MESSAGE !! #");            
+        #endif
   }
 
 } // LNetCmdStation::processIncomingLoconetCommand

@@ -2,6 +2,7 @@
 
 DCC++ BASE STATION
 COPYRIGHT (c) 2013-2015 Gregg E. Berman
+Loconet implementation by Dani Guisado (c) 2016
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,13 +20,17 @@ COPYRIGHT (c) 2013-2015 Gregg E. Berman
 **********************************************************************/
 /**********************************************************************
       
-DCC++ BASE STATION is a C++ program written for the Arduino Uno and Arduino Mega
+DCC++ BASE STATION is a C++ program written for the Arduino Mega
 using the Arduino IDE 1.6.6.
 
-It allows a standard Arduino Uno or Mega with an Arduino Motor Shield (as well as others)
+It allows a standard Arduino Mega with an Arduino Motor Shield (as well as others)
 to be used as a fully-functioning digital command and control (DCC) base station
 for controlling model train layouts that conform to current National Model
-Railroad Association (NMRA) DCC standards.
+Railroad Association (NMRA) DCC standards. Adding a Loconet Shield it can be
+integrated in a Loconet network receiving commands via this communication bus.
+It supports also the connection of a LCD KeyPad shield and a double relay board
+to change normal DCC current to programming current. Programming on main track
+has been intentionally disabled when communicating via Loconet.
 
 This version of DCC++ BASE STATION supports:
 
@@ -35,26 +40,15 @@ This version of DCC++ BASE STATION supports:
   * Cab functions F0-F28
   * Activate/de-activate accessory functions using 512 addresses, each with 4 sub-addresses
       - includes optional functionailty to monitor and store of the direction of any connected turnouts
-  * Programming on the Main Operations Track
-      - write configuration variable bytes
-      - set/clear specific configuration variable bits
   * Programming on the Programming Track
       - write configuration variable bytes
       - set/clear specific configuration variable bits
       - read configuration variable bytes
 
-DCC++ BASE STATION is controlled with simple text commands received via
-the Arduino's serial interface.  Users can type these commands directly
-into the Arduino IDE Serial Monitor, or can send such commands from another
-device or computer program.
-
-When compiled for the Arduino Mega, an Ethernet Shield can be used for network
-communications instead of using serial communications.
-
-DCC++ CONTROLLER, available separately under a similar open-source
-license, is a Java program written using the Processing library and Processing IDE
-that provides a complete and configurable graphic interface to control model train layouts
-via the DCC++ BASE STATION.
+If not using a Loconet shield, DCC++ BASE STATION is controlled with 
+simple text commands received via the Arduino's serial interface.  
+Users can type these commands directly into the Arduino IDE Serial Monitor, 
+or can send such commands from another device or computer program.
 
 With the exception of a standard 15V power supply that can be purchased in
 any electronics store, no additional hardware is required.
@@ -76,13 +70,14 @@ REFERENCES:
   Arduino:                     http://www.arduino.cc/
   Processing:                  http://processing.org/
   GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+  MRRWA Loconet libraries:     http://mrrwa.org/
 
 BRIEF NOTES ON THE THEORY AND OPERATION OF DCC++ BASE STATION:
 
-DCC++ BASE STATION for the Uno configures the OC0B interrupt pin associated with Timer 0,
+DCC++ BASE STATION for the Mega configures the OC3B interrupt pin associated with Timer 0,
 and the OC1B interupt pin associated with Timer 1, to generate separate 0-5V
 unipolar signals that each properly encode zero and one bits conforming with
-DCC timing standards.  When compiled for the Mega, DCC++ BASE STATION uses OC3B instead of OC0B.
+DCC timing standards.
 
 Series of DCC bit streams are bundled into Packets that each form the basis of
 a standard DCC instruction.  Packets are stored in Packet Registers that contain
@@ -118,12 +113,8 @@ Some DCC decoders actually require receipt of sequential multiple identical one-
 verifying proper transmittal before acting on the instructions contained in those packets
 
 An Arduino Motor Shield (or similar), powered by a standard 15V DC power supply and attached
-on top of the Arduino Uno or Mega, is used to transform the 0-5V DCC logic signals
+on top of the Arduino Mega, is used to transform the 0-5V DCC logic signals
 produced by the Uno's Timer interrupts into proper 0-15V bi-polar DCC signals.
-
-This is accomplished on the Uno by using one small jumper wire to connect the Uno's OC1B output (pin 10)
-to the Motor Shield's DIRECTION A input (pin 12), and another small jumper wire to connect
-the Uno's OC0B output (pin 5) to the Motor Shield's DIRECTION B input (pin 13).
 
 For the Mega, the OC1B output is produced directly on pin 12, so no jumper is needed to connect to the
 Motor Shield's DIRECTION A input.  However, one small jumper wire is needed to connect the Mega's OC3B output (pin 2)
@@ -162,7 +153,26 @@ DCC++ BASE STATION in split into multiple modules, each with its own header file
   EEStore:          contains methods to store, update, and load various DCC settings and status
                     (e.g. the states of all defined turnouts) in the EEPROM for recall after power-up
 
+  LNetCmdStation:   contains all Loconet communication methods (programmed by Dani Guisado from ClubNCaldes)
+  
 DCC++ BASE STATION is configured through the Config.h file that contains all user-definable parameters                    
+
+Predefined Pins for Arduino MEGA:
+
+Pins 0,1:   Serial communication for debugging purposes
+Pin 30:     Power ON push button
+Pin 31:     Power OFF push button
+Pin 32:     External emergency stop button
+Pin 33:     Emergency led
+Pin 34:     Power ON led
+Pin 35:     Power OFF led
+Pin 36:     Relay 1 to switch between normal and programming current
+Pin 37:     Relay 2 to switch between normal and programming current
+
+Pins 40, 41, 42, 43, 44,45: Conection to LCD keypad shield
+
+Pin 47:     Loconet TX
+Pin 48:     Loconet RX
 
 **********************************************************************/
 
@@ -299,7 +309,7 @@ void setup(){
   Serial.print(__DATE__);
   Serial.print(" ");
   Serial.print(__TIME__);
-  Serial.print(">");
+  Serial.println(">");
             
   SerialCommand::init(&mainRegs, &progRegs, &mainMonitor);   // create structure to read and parse commands from serial line
   

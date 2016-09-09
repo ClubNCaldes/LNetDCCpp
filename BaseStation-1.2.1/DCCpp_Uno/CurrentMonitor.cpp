@@ -58,8 +58,7 @@ void CurrentMonitor::setGlobalPower(uint8_t pPower)
     INTERFACE.println("<p0>");
   }
   else if (pPower==EMERGENCY)
-  {
-    Serial.println(" EMERGENCY ");
+  {    
     digitalWrite(SIGNAL_ENABLE_PIN_PROG,LOW);
     digitalWrite(SIGNAL_ENABLE_PIN_MAIN,LOW);
     digitalWrite(PWON_LED_PIN, LOW);
