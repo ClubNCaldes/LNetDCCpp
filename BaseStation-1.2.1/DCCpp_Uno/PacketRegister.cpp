@@ -330,9 +330,13 @@ void RegisterList::writeCVByte(char *s) volatile{
       d=1;
   }
 
-  #if (MOTOR_SHIELD_SUPPORTS_FEEDBACK > 0)    
-    if(d==0)    // verify unsuccessful
+  if (MOTOR_SHIELD_SUPPORTS_FEEDBACK > 0)
+  {
+    if(d==0) {   // verify unsuccessful
       bValue=-1;
+    } else {
+        bValue=-2;
+    }
   }
 
   INTERFACE.print("<r");
@@ -390,13 +394,14 @@ void RegisterList::writeCVBit(char *s) volatile{
       d=1;
   }
     
-  #if (MOTOR_SHIELD_SUPPORTS_FEEDBACK > 0)
+  if (MOTOR_SHIELD_SUPPORTS_FEEDBACK > 0)
+  {
     if(d==0) {    // verify unsuccessful
       bValue=-1;
-    }
-  #else
+    } else {
       bValue=-2;
-  #endif
+    }
+  }
   
   INTERFACE.print("<r");
   INTERFACE.print(callBack);
