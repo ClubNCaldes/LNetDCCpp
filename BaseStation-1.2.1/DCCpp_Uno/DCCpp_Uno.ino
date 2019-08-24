@@ -39,7 +39,7 @@ This version of DCC++ BASE STATION supports:
   * 128-step speed throttling
   * Cab functions F0-F28
   * Activate/de-activate accessory functions using 512 addresses, each with 4 sub-addresses
-      - includes optional functionailty to monitor and store of the direction of any connected turnouts
+      - includes optional functionality to monitor and store of the direction of any connected turnouts
   * Programming on the Programming Track
       - write configuration variable bytes
       - set/clear specific configuration variable bits
@@ -219,22 +219,22 @@ int timestoshow=0;
 
 void loop(){
 
-  locoNetCmdStation.checkPacket();    // check for incomming Loconet packets
+  locoNetCmdStation.checkPacket();       // check for incomming Loconet packets
   
   SerialCommand::process();              // check for, and process, and new serial commands
   
-  if(CurrentMonitor::checkTime()){      // if sufficient time has elapsed since last update, check current draw on Main and Program Tracks 
+  if(CurrentMonitor::checkTime()){       // if sufficient time has elapsed since last update, check current draw on Main and Program Tracks 
     if (mainMonitor.check() || progMonitor.check())
     {
       locoNetCmdStation.sendOPC_GP(EMERGENCY);
-      lcd.setCursor(0,0);             // set the LCD cursor   position 
+      lcd.setCursor(0,0);                // set the LCD cursor   position 
       lcd.print(" EMERGENCY STOP ");
     }
 
     timestoshow++;
     if (timestoshow>2000)
     {
-      lcd.setCursor(0,1);             // set the LCD cursor   position 
+      lcd.setCursor(0,1);                // set the LCD cursor   position 
       lcd.print("Main:");   lcd.print(map(mainMonitor.current,0, CURRENT_SAMPLE_MAX, 0, 100));
       lcd.print("% Pr:"); lcd.print(map(progMonitor.current,0, CURRENT_SAMPLE_MAX, 0, 100)); lcd.print("%     ");
       timestoshow=0;  
@@ -244,27 +244,27 @@ void loop(){
 
   if (NO_BUTTONS == 0)
   {
-    lcd_key = read_LCD_buttons();  // read the buttons
+    lcd_key = read_LCD_buttons();        // read the buttons
     
     if (digitalRead(EMERGENCY_STOP_PIN)==LOW)
     {
       mainMonitor.setGlobalPower(EMERGENCY);
       locoNetCmdStation.sendOPC_GP(EMERGENCY);
-      lcd.setCursor(0,0);             // set the LCD cursor   position 
+      lcd.setCursor(0,0);               // set the LCD cursor   position 
       lcd.print(" EMERGENCY STOP ");
     }
     else if ((mainMonitor.globalPowerON!=ON) && (digitalRead(PWON_BUTTON_PIN)==LOW || lcd_key==btnLEFT))
     {
       mainMonitor.setGlobalPower(ON);
       locoNetCmdStation.sendOPC_GP(ON);
-      lcd.setCursor(0,0);             // set the LCD cursor   position 
+      lcd.setCursor(0,0);               // set the LCD cursor   position 
       lcd.print(" POWER ON       ");
     }
     else if ((mainMonitor.globalPowerON!=OFF) && (digitalRead(PWOFF_BUTTON_PIN)==LOW || lcd_key==btnRIGHT))
     {
       mainMonitor.setGlobalPower(OFF);
       locoNetCmdStation.sendOPC_GP(OFF);
-      lcd.setCursor(0,0);             // set the LCD cursor   position 
+      lcd.setCursor(0,0);               // set the LCD cursor   position 
       lcd.print(" POWER OFF      ");
     }
   }
@@ -279,9 +279,9 @@ void setup(){
 
   lcd.begin(16, 2);               // start the library
   lcd.setCursor(0,0);             // set the LCD cursor   position 
-  lcd.print("DCC++ Loconet");  // print a simple message on the LCD
+  lcd.print("DCC++ Loconet");     // print a simple message on the LCD
   lcd.setCursor(0,1);             // set the LCD cursor   position 
-  lcd.print("ClubNCaldes (c)");  // print a simple message on the LCD
+  lcd.print("ClubNCaldes (c)");   // print a simple message on the LCD
    
   //Indication pins
   pinMode(PROG_RELAY1, OUTPUT);
@@ -301,10 +301,10 @@ void setup(){
   
   LocoNet.init(47);
   
-  Serial.begin(115200);            // configure serial interface
+  Serial.begin(115200);                                              // configure serial interface
   Serial.flush();
 
-  Serial.print("<iDCC++ BASE STATION MEGA FOR ARDUINO ");      // Print Status to Serial Line regardless of COMM_TYPE setting so usee can open Serial Monitor and check configuration 
+  Serial.print("<iDCC++ BASE STATION MEGA FOR ARDUINO ");            // Print Status to Serial Line regardless of COMM_TYPE setting so usee can open Serial Monitor and check configuration 
   Serial.print(ARDUINO_TYPE);
   Serial.print(" / ");
   Serial.print(MOTOR_SHIELD_NAME);
@@ -314,7 +314,7 @@ void setup(){
   Serial.print(__TIME__);
   Serial.println(">");
             
-  SerialCommand::init(&mainRegs, &progRegs, &mainMonitor);   // create structure to read and parse commands from serial line
+  SerialCommand::init(&mainRegs, &progRegs, &mainMonitor);            // create structure to read and parse commands from serial line
   
   locoNetCmdStation.init(&mainRegs, &progRegs, &mainMonitor, &lcd);   // create structure to read and parse commands from Loconet
 
@@ -331,10 +331,10 @@ void setup(){
   #define DCC_ONE_BIT_TOTAL_DURATION_TIMER1 1855
   #define DCC_ONE_BIT_PULSE_DURATION_TIMER1 927
 
-  pinMode(DIRECTION_MOTOR_CHANNEL_PIN_A,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
+  pinMode(DIRECTION_MOTOR_CHANNEL_PIN_A,INPUT);                        // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_A,LOW);
 
-  pinMode(DCC_SIGNAL_PIN_MAIN, OUTPUT);      // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-A OF MOTOR CHANNEL-A
+  pinMode(DCC_SIGNAL_PIN_MAIN, OUTPUT);                                // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-A OF MOTOR CHANNEL-A
 
   bitSet(TCCR1A,WGM10);     // set Timer 1 to FAST PWM, with TOP=OCR1A
   bitSet(TCCR1A,WGM11);
@@ -351,11 +351,11 @@ void setup(){
   OCR1A=DCC_ONE_BIT_TOTAL_DURATION_TIMER1;
   OCR1B=DCC_ONE_BIT_PULSE_DURATION_TIMER1;
   
-  pinMode(SIGNAL_ENABLE_PIN_MAIN,OUTPUT);   // master enable for motor channel A
+  pinMode(SIGNAL_ENABLE_PIN_MAIN,OUTPUT);                 // master enable for motor channel A
 
   mainRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1    
       
-  bitSet(TIMSK1,OCIE1B);    // enable interrupt vector for Timer 1 Output Compare B Match (OCR1B)    
+  bitSet(TIMSK1,OCIE1B);                                  // enable interrupt vector for Timer 1 Output Compare B Match (OCR1B)    
 
   // Directon Pin for Motor Shield Channel B - PROGRAMMING TRACK
   // Controlled by Arduino 16-bit TIMER 3 / OC3B Interrupt Pin
@@ -368,31 +368,31 @@ void setup(){
   #define DCC_ONE_BIT_TOTAL_DURATION_TIMER3 1855
   #define DCC_ONE_BIT_PULSE_DURATION_TIMER3 927
 
-  pinMode(DIRECTION_MOTOR_CHANNEL_PIN_B,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
+  pinMode(DIRECTION_MOTOR_CHANNEL_PIN_B,INPUT);           // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_B,LOW);
 
-  pinMode(DCC_SIGNAL_PIN_PROG,OUTPUT);      // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-B OF MOTOR CHANNEL-B
+  pinMode(DCC_SIGNAL_PIN_PROG,OUTPUT);                    // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-B OF MOTOR CHANNEL-B
 
-  bitSet(TCCR3A,WGM30);     // set Timer 3 to FAST PWM, with TOP=OCR3A
+  bitSet(TCCR3A,WGM30);                                   // set Timer 3 to FAST PWM, with TOP=OCR3A
   bitSet(TCCR3A,WGM31);
   bitSet(TCCR3B,WGM32);
   bitSet(TCCR3B,WGM33);
 
-  bitSet(TCCR3A,COM3B1);    // set Timer 3, OC3B (pin 2) to inverting toggle (actual direction is arbitrary)
+  bitSet(TCCR3A,COM3B1);                                  // set Timer 3, OC3B (pin 2) to inverting toggle (actual direction is arbitrary)
   bitSet(TCCR3A,COM3B0);
 
-  bitClear(TCCR3B,CS32);    // set Timer 3 prescale=1
+  bitClear(TCCR3B,CS32);                                  // set Timer 3 prescale=1
   bitClear(TCCR3B,CS31);
   bitSet(TCCR3B,CS30);
     
   OCR3A=DCC_ONE_BIT_TOTAL_DURATION_TIMER3;
   OCR3B=DCC_ONE_BIT_PULSE_DURATION_TIMER3;
   
-  pinMode(SIGNAL_ENABLE_PIN_PROG,OUTPUT);   // master enable for motor channel B
+  pinMode(SIGNAL_ENABLE_PIN_PROG,OUTPUT);                 // master enable for motor channel B
 
   progRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1    
       
-  bitSet(TIMSK3,OCIE3B);    // enable interrupt vector for Timer 3 Output Compare B Match (OCR3B)    
+  bitSet(TIMSK3,OCIE3B);                                  // enable interrupt vector for Timer 3 Output Compare B Match (OCR3B)    
 
 
   

@@ -19,7 +19,7 @@ Command Station Loconet implementation
   
 struct LNetCmdStation{  
   lnMsg *LnPacket;
-  //DGS Loconet Slot table for locomotives
+  // DGS Loconet Slot table for locomotives
   rwSlotDataMsg locoNetSlots[MAX_MAIN_REGISTERS];
   static volatile RegisterList *mRegs, *pRegs;
   static CurrentMonitor *mMonitor;

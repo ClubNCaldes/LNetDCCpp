@@ -26,7 +26,7 @@ void LNetCmdStation::init(volatile RegisterList *_mRegs, volatile RegisterList *
   mMonitor=_mMonitor;
   mLcd=_mLcd;
   
-  //DGS initialize slots to FREE
+  // DGS initialize slots to FREE
   int n;
   for (n=0;n<MAX_MAIN_REGISTERS;n++)
   {
@@ -104,7 +104,7 @@ void LNetCmdStation::processIncomingLoconetCommand()
   
   switch (opcode)
   {
-    case OPC_GPON: //Global ON command
+    case OPC_GPON: // Global ON command
       #ifdef DEBUG
         Serial.println("# GLOBAL ON #");        
       #endif
@@ -122,7 +122,7 @@ void LNetCmdStation::processIncomingLoconetCommand()
       mLcd->print("Status: OFF     ");   
       break;
 
-    case OPC_IDLE: //Stop emergency
+    case OPC_IDLE: // Stop emergency
       #ifdef DEBUG
         Serial.println("# EMERGENCY STOP #");
       #endif            
@@ -135,8 +135,8 @@ void LNetCmdStation::processIncomingLoconetCommand()
       #ifdef DEBUG
         Serial.println("# OPC_LOCO_ADR Request of Loco #");
       #endif
-      //Check if it is in slot already and also gets the first possible free slot
-      //Slot 0 is not examined as it is used as BT2 slot (TODO not implemented)
+      // Check if it is in slot already and also gets the first possible free slot
+      // Slot 0 is not examined as it is used as BT2 slot (TODO not implemented)
       
       for (n=1;n<MAX_MAIN_REGISTERS;n++)
       {
@@ -146,7 +146,7 @@ void LNetCmdStation::processIncomingLoconetCommand()
           break;
       }
   
-      //Loco not found and no free slots
+      // Loco not found and no free slots
       if (n==MAX_MAIN_REGISTERS && freeslot==MAX_MAIN_REGISTERS)
       {
         #ifdef DEBUG
@@ -155,7 +155,7 @@ void LNetCmdStation::processIncomingLoconetCommand()
         LocoNet.sendLongAck(0);
         break;
       }
-      //Loco not found, add to the first free slot speed 0, direction front, F0 ON
+      // Loco not found, add to the first free slot speed 0, direction front, F0 ON
       if (n==MAX_MAIN_REGISTERS) 
       {
         n=freeslot;
@@ -183,7 +183,7 @@ void LNetCmdStation::processIncomingLoconetCommand()
       #ifdef DEBUG
         Serial.println("# OPC_MOVE_SLOTS #");
       #endif
-      //Check slot range (0 DISPATCH NOT SUPPORTED, DIFFERENT NOT SUPPORTED)
+      // Check slot range (0 DISPATCH NOT SUPPORTED, DIFFERENT NOT SUPPORTED)
       if (LnPacket->sm.dest>=MAX_MAIN_REGISTERS || LnPacket->sm.src>=MAX_MAIN_REGISTERS || LnPacket->sm.dest!=LnPacket->sm.src || LnPacket->sm.dest<1 || LnPacket->sm.src<1)
       {
         LocoNet.sendLongAck(0);
@@ -192,15 +192,15 @@ void LNetCmdStation::processIncomingLoconetCommand()
       
       locoNetSlots[LnPacket->sm.dest].stat|=LOCO_IN_USE;    
       LocoNet.send ((lnMsg*)&locoNetSlots[LnPacket->sm.dest]);
-      //<t REGISTER CAB SPEED DIRECTION>
+      // <t REGISTER CAB SPEED DIRECTION>
       myAddress=locoNetSlots[LnPacket->sm.dest].adr+(locoNetSlots[LnPacket->sm.dest].adr2<<7);
       sprintf(s,"%d %d %d %d",LnPacket->sm.dest,myAddress,locoNetSlots[LnPacket->sm.dest].spd,bitRead(locoNetSlots[LnPacket->sm.dest].dirf,5));
 
       mRegs->setThrottle(s);
       // <f CAB BYTE1 [BYTE2]>
-      //   To set functions F0-F4 on (=1) or off (=0):
-      //   BYTE1:  128 + F1*1 + F2*2 + F3*4 + F4*8 + F0*16
-      //   BYTE2:  omitted
+      // To set functions F0-F4 on (=1) or off (=0):
+      // BYTE1:  128 + F1*1 + F2*2 + F3*4 + F4*8 + F0*16
+      // BYTE2:  omitted
       myByte=128;
       bitWrite(myByte,4,bitRead(locoNetSlots[LnPacket->sm.dest].dirf,4)); //F0
       bitWrite(myByte,0,bitRead(locoNetSlots[LnPacket->sm.dest].dirf,0)); //F1
@@ -216,10 +216,10 @@ void LNetCmdStation::processIncomingLoconetCommand()
         Serial.println("# OPC_SLOT_STAT1 #");
       #endif
       locoNetSlots[LnPacket->ss.slot].stat = LnPacket->ss.stat;
-      //<t REGISTER CAB SPEED DIRECTION>
-      //char s[20];
-      //sprintf(s,"%d %d %d %d",LnPacket->ss.slot,locoNetSlots[LnPacket->ss.slot].adr,locoNetSlots[LnPacket->ss.slot].spd,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,5));
-      //mainRegs.setThrottle(s);
+      // <t REGISTER CAB SPEED DIRECTION>
+      // char s[20];
+      // sprintf(s,"%d %d %d %d",LnPacket->ss.slot,locoNetSlots[LnPacket->ss.slot].adr,locoNetSlots[LnPacket->ss.slot].spd,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,5));
+      // mainRegs.setThrottle(s);
       break;
       
     case OPC_LOCO_SPD:
@@ -227,7 +227,7 @@ void LNetCmdStation::processIncomingLoconetCommand()
         Serial.println("# OPC_LOCO_SPD #");
       #endif
       locoNetSlots[LnPacket->lsp.slot].spd = LnPacket->lsp.spd;
-      //<t REGISTER CAB SPEED DIRECTION>
+      // <t REGISTER CAB SPEED DIRECTION>
       myAddress=locoNetSlots[LnPacket->lsp.slot].adr+(locoNetSlots[LnPacket->lsp.slot].adr2<<7);
       sprintf(s,"%d %d %d %d",LnPacket->lsp.slot,myAddress,locoNetSlots[LnPacket->lsp.slot].spd,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,5));
       mRegs->setThrottle(s);
@@ -239,20 +239,20 @@ void LNetCmdStation::processIncomingLoconetCommand()
         Serial.println(locoNetSlots[LnPacket->ldf.slot].dirf,BIN);
       #endif
       locoNetSlots[LnPacket->ldf.slot].dirf = LnPacket->ldf.dirf;
-      //<t REGISTER CAB SPEED DIRECTION>
+      // <t REGISTER CAB SPEED DIRECTION>
       myAddress=locoNetSlots[LnPacket->lsp.slot].adr+(locoNetSlots[LnPacket->lsp.slot].adr2<<7);
       sprintf(s,"%d %d %d %d",LnPacket->ldf.slot,myAddress,locoNetSlots[LnPacket->ldf.slot].spd,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,5));      
       mRegs->setThrottle(s);
       // <f CAB BYTE1 [BYTE2]>
-      //   To set functions F0-F4 on (=1) or off (=0):
-      //   BYTE1:  128 + F1*1 + F2*2 + F3*4 + F4*8 + F0*16
-      //   BYTE2:  omitted
+      // To set functions F0-F4 on (=1) or off (=0):
+      // BYTE1:  128 + F1*1 + F2*2 + F3*4 + F4*8 + F0*16
+      // BYTE2:  omitted
       myByte=128;      
-      bitWrite(myByte,0,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,0)); //F1
-      bitWrite(myByte,1,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,1)); //F2
-      bitWrite(myByte,2,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,2)); //F3
-      bitWrite(myByte,3,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,3)); //F4
-      bitWrite(myByte,4,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,4)); //F0
+      bitWrite(myByte,0,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,0)); // F1
+      bitWrite(myByte,1,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,1)); // F2
+      bitWrite(myByte,2,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,2)); // F3
+      bitWrite(myByte,3,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,3)); // F4
+      bitWrite(myByte,4,bitRead(locoNetSlots[LnPacket->ldf.slot].dirf,4)); // F0
       sprintf(s,"%d %d",myAddress,myByte);      
       mRegs->setFunction(s);
       break;
@@ -269,10 +269,10 @@ void LNetCmdStation::processIncomingLoconetCommand()
       //*    BYTE2:  omitted
       myAddress=locoNetSlots[LnPacket->lsp.slot].adr+(locoNetSlots[LnPacket->lsp.slot].adr2<<7);
       myByte=176;      
-      bitWrite(myByte,0,bitRead(locoNetSlots[LnPacket->ls.slot].snd,0)); //F5
-      bitWrite(myByte,1,bitRead(locoNetSlots[LnPacket->ls.slot].snd,1)); //F6
-      bitWrite(myByte,2,bitRead(locoNetSlots[LnPacket->ls.slot].snd,2)); //F7
-      bitWrite(myByte,3,bitRead(locoNetSlots[LnPacket->ls.slot].snd,3)); //F8      
+      bitWrite(myByte,0,bitRead(locoNetSlots[LnPacket->ls.slot].snd,0)); // F5
+      bitWrite(myByte,1,bitRead(locoNetSlots[LnPacket->ls.slot].snd,1)); // F6
+      bitWrite(myByte,2,bitRead(locoNetSlots[LnPacket->ls.slot].snd,2)); // F7
+      bitWrite(myByte,3,bitRead(locoNetSlots[LnPacket->ls.slot].snd,3)); // F8      
       sprintf(s,"%d %d",myAddress,myByte);      
       mRegs->setFunction(s);
       
@@ -356,15 +356,15 @@ void LNetCmdStation::processIncomingLoconetCommand()
       #define PROG_CV_NUM(ptr)    (((((ptr->cvh & CVH_CV8_CV9) >> 3) | (ptr->cvh & CVH_CV7)) * 128) + (ptr->cvl & 0x7f))
       ------------------------------------------------------------------------*/
 
-      //Check for programming slot    
+      // Check for programming slot    
       if (LnPacket->pt.slot!=PRG_SLOT)
         break;
 
-      //PCMD value of 00 aborts current SERVICE mode programming and echo <E6>RD
+      // PCMD value of 00 aborts current SERVICE mode programming and echo <E6>RD
       if (LnPacket->pt.pcmd==0x00)
         break;
 
-      //Bit operations not implemented
+      // Bit operations not implemented
       if (((LnPacket->pt.pcmd&PCMD_BYTE_MODE)==0) || ((LnPacket->pt.pcmd&PCMD_RW)>0 && (LnPacket->pt.pcmd&PCMD_OPS_MODE)>0))
       {
         LocoNet.send(OPC_LONG_ACK,0x7F,0x7F);
@@ -379,7 +379,7 @@ void LNetCmdStation::processIncomingLoconetCommand()
       cvnum++;
       cvvalue=(((LnPacket->pt.cvh & CVH_D7) << 6) | (LnPacket->pt.data7 & 0x7f));
       
-      //READ ON PROGRAMMING TRACK      
+      // READ ON PROGRAMMING TRACK      
       if ((LnPacket->pt.pcmd&PCMD_RW) == 0 && (LnPacket->pt.pcmd&PCMD_OPS_MODE)==0)
       {
         LocoNet.send(OPC_LONG_ACK,0x7F,1);
@@ -397,8 +397,8 @@ void LNetCmdStation::processIncomingLoconetCommand()
         sprintf(s,"%d 11 12",cvnum);
         
         cvvalue=pRegs->readCV(s);
-        //<0xEF>,<0E>,<7C>,<PCMD>,<0>    ,<HOPSA>,<LOPSA>,<TRK>,<CVH>,<CVL>,<DATA7>,<0>,<0>,<CHK>
-        //<0xE7>,<0E>,<7C>,<PCMD>,<PSTAT>,<HOPSA>,<LOPSA>,<TRK>,<CVH>,<CVL>,<DATA7>,<0>,<0>,<CHK>
+        // <0xEF>,<0E>,<7C>,<PCMD>,<0>    ,<HOPSA>,<LOPSA>,<TRK>,<CVH>,<CVL>,<DATA7>,<0>,<0>,<CHK>
+        // <0xE7>,<0E>,<7C>,<PCMD>,<PSTAT>,<HOPSA>,<LOPSA>,<TRK>,<CVH>,<CVL>,<DATA7>,<0>,<0>,<CHK>
         LnPacket->pt.command=OPC_SL_RD_DATA;
         LnPacket->pt.pstat=0;
         LnPacket->pt.data7=cvvalue;        
