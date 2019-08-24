@@ -242,29 +242,32 @@ void loop(){
     
   }
 
-  lcd_key = read_LCD_buttons();  // read the buttons
-  
-  if (digitalRead(EMERGENCY_STOP_PIN)==LOW)
+  if (NO_BUTTONS == 0)
   {
-    mainMonitor.setGlobalPower(EMERGENCY);
-    locoNetCmdStation.sendOPC_GP(EMERGENCY);
-    lcd.setCursor(0,0);             // set the LCD cursor   position 
-    lcd.print(" EMERGENCY STOP ");
+    lcd_key = read_LCD_buttons();  // read the buttons
+    
+    if (digitalRead(EMERGENCY_STOP_PIN)==LOW)
+    {
+      mainMonitor.setGlobalPower(EMERGENCY);
+      locoNetCmdStation.sendOPC_GP(EMERGENCY);
+      lcd.setCursor(0,0);             // set the LCD cursor   position 
+      lcd.print(" EMERGENCY STOP ");
+    }
+    else if ((mainMonitor.globalPowerON!=ON) && (digitalRead(PWON_BUTTON_PIN)==LOW || lcd_key==btnLEFT))
+    {
+      mainMonitor.setGlobalPower(ON);
+      locoNetCmdStation.sendOPC_GP(ON);
+      lcd.setCursor(0,0);             // set the LCD cursor   position 
+      lcd.print(" POWER ON       ");
+    }
+    else if ((mainMonitor.globalPowerON!=OFF) && (digitalRead(PWOFF_BUTTON_PIN)==LOW || lcd_key==btnRIGHT))
+    {
+      mainMonitor.setGlobalPower(OFF);
+      locoNetCmdStation.sendOPC_GP(OFF);
+      lcd.setCursor(0,0);             // set the LCD cursor   position 
+      lcd.print(" POWER OFF      ");
+    }
   }
-  else if ((mainMonitor.globalPowerON!=ON) && (digitalRead(PWON_BUTTON_PIN)==LOW || lcd_key==btnLEFT))
-  {
-    mainMonitor.setGlobalPower(ON);
-    locoNetCmdStation.sendOPC_GP(ON);
-    lcd.setCursor(0,0);             // set the LCD cursor   position 
-    lcd.print(" POWER ON       ");
-  }
-  else if ((mainMonitor.globalPowerON!=OFF) && (digitalRead(PWOFF_BUTTON_PIN)==LOW || lcd_key==btnRIGHT))
-  {
-    mainMonitor.setGlobalPower(OFF);
-    locoNetCmdStation.sendOPC_GP(OFF);
-    lcd.setCursor(0,0);             // set the LCD cursor   position 
-    lcd.print(" POWER OFF      ");
-  }  
   
 } // loop
 

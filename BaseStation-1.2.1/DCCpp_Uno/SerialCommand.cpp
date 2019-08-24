@@ -15,6 +15,7 @@ Part of DCC++ BASE STATION for the Arduino
 // See SerialCommand::parse() below for defined text commands.
 
 #include "SerialCommand.h"
+#include "LNetCmdStation.h"
 #include "DCCpp_Uno.h"
 
 extern int __heap_start, *__brkval;
@@ -25,6 +26,7 @@ char SerialCommand::commandString[MAX_COMMAND_LENGTH+1];
 volatile RegisterList *SerialCommand::mRegs;
 volatile RegisterList *SerialCommand::pRegs;
 CurrentMonitor *SerialCommand::mMonitor;
+LNetCmdStation *LNetCmdStation;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -286,6 +288,7 @@ void SerialCommand::parse(char *com){
      digitalWrite(SIGNAL_ENABLE_PIN_PROG,HIGH);
      digitalWrite(SIGNAL_ENABLE_PIN_MAIN,HIGH);
      INTERFACE.print("<p1>");
+     LNetCmdStation->sendOPC_GP(ON);
      break;
           
 /***** TURN OFF POWER FROM MOTOR SHIELD TO TRACKS  ****/    
@@ -299,6 +302,7 @@ void SerialCommand::parse(char *com){
      digitalWrite(SIGNAL_ENABLE_PIN_PROG,LOW);
      digitalWrite(SIGNAL_ENABLE_PIN_MAIN,LOW);
      INTERFACE.print("<p0>");
+     LNetCmdStation->sendOPC_GP(OFF);
      break;
 
 /***** READ MAIN OPERATIONS TRACK CURRENT  ****/    

@@ -15,6 +15,7 @@ Part of DCC++ BASE STATION for the Arduino
 //  1 = POLOLU MC33926 MOTOR SHIELD   (MAX 28V/3A PER CHANNEL)
 
 #define MOTOR_SHIELD_TYPE   0
+#define NO_BUTTONS          0         // Set to anything other than 0 to run without buttons
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
