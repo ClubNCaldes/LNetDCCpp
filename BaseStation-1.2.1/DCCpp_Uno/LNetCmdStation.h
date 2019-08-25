@@ -10,7 +10,7 @@ Command Station Loconet implementation
 #ifndef LNetCmdStation_h
 #define LNetCmdStation_h
 
-
+#include "Config.h"
 #include "PacketRegister.h"
 #include "CurrentMonitor.h"
 #include <LiquidCrystal.h>
@@ -19,8 +19,8 @@ Command Station Loconet implementation
   
 struct LNetCmdStation{  
   lnMsg *LnPacket;
-  //DGS Loconet Slot table for locomotives
-  rwSlotDataMsg locoNetSlots[50]; //TODO use a define
+  // DGS Loconet Slot table for locomotives
+  rwSlotDataMsg locoNetSlots[MAX_MAIN_REGISTERS];
   static volatile RegisterList *mRegs, *pRegs;
   static CurrentMonitor *mMonitor;
   void init(volatile RegisterList *, volatile RegisterList *, CurrentMonitor *, LiquidCrystal *);  

@@ -39,7 +39,7 @@ This version of DCC++ BASE STATION supports:
   * 128-step speed throttling
   * Cab functions F0-F28
   * Activate/de-activate accessory functions using 512 addresses, each with 4 sub-addresses
-      - includes optional functionailty to monitor and store of the direction of any connected turnouts
+      - includes optional functionality to monitor and store of the direction of any connected turnouts
   * Programming on the Programming Track
       - write configuration variable bytes
       - set/clear specific configuration variable bits
@@ -90,18 +90,18 @@ registers numbered 1 through MAX_MAIN_REGISTERS (as defined in DCCpp_Uno.h).
 It is generally considered good practice to continuously send throttle control packets
 to every cab so that if an engine should momentarily lose electrical connectivity with the tracks,
 it will very quickly receive another throttle control signal as soon as connectivity is
-restored (such as when a trin passes over  rough portion of track or the frog of a turnout).
+restored (such as when a train passes over  rough portion of track or the frog of a turnout).
 
 DCC++ Base Station therefore sequentially loops through each main operations track packet regsiter
 that has been loaded with a throttle control setting for a given cab.  For each register, it
 transmits the appropriate DCC packet bits to the track, then moves onto the next register
 without any pausing to ensure continuous bi-polar power is being provided to the tracks.
 Updates to the throttle setting stored in any given packet register are done in a double-buffered
-fashion and the sequencer is pointed to that register immediately after being changes so that updated DCC bits
+fashion and the sequencer is pointed to that register immediately after being changed so that updated DCC bits
 can be transmitted to the appropriate cab without delay or any interruption in the bi-polar power signal.
 The cabs identified in each stored throttle setting should be unique across registers.  If two registers
 contain throttle setting for the same cab, the throttle in the engine will oscillate between the two,
-which is probably not a desireable outcome.
+which is probably not a desirable outcome.
 
 For both the main operations track and the programming track there is also a special packet register with id=0
 that is used to store all other DCC packets that do not require continious transmittal to the tracks.
@@ -219,22 +219,22 @@ int timestoshow=0;
 
 void loop(){
 
-  locoNetCmdStation.checkPacket();    // check for incomming Loconet packets
+  locoNetCmdStation.checkPacket();       // check for incomming Loconet packets
   
   SerialCommand::process();              // check for, and process, and new serial commands
   
-  if(CurrentMonitor::checkTime()){      // if sufficient time has elapsed since last update, check current draw on Main and Program Tracks 
+  if(CurrentMonitor::checkTime()){       // if sufficient time has elapsed since last update, check current draw on Main and Program Tracks 
     if (mainMonitor.check() || progMonitor.check())
     {
       locoNetCmdStation.sendOPC_GP(EMERGENCY);
-      lcd.setCursor(0,0);             // set the LCD cursor   position 
+      lcd.setCursor(0,0);                // set the LCD cursor   position 
       lcd.print(" EMERGENCY STOP ");
     }
 
     timestoshow++;
     if (timestoshow>2000)
     {
-      lcd.setCursor(0,1);             // set the LCD cursor   position 
+      lcd.setCursor(0,1);                // set the LCD cursor   position 
       lcd.print("Main:");   lcd.print(map(mainMonitor.current,0, CURRENT_SAMPLE_MAX, 0, 100));
       lcd.print("% Pr:"); lcd.print(map(progMonitor.current,0, CURRENT_SAMPLE_MAX, 0, 100)); lcd.print("%     ");
       timestoshow=0;  
@@ -242,29 +242,32 @@ void loop(){
     
   }
 
-  lcd_key = read_LCD_buttons();  // read the buttons
-  
-  if (digitalRead(EMERGENCY_STOP_PIN)==LOW)
+  if (NO_BUTTONS == 0)
   {
-    mainMonitor.setGlobalPower(EMERGENCY);
-    locoNetCmdStation.sendOPC_GP(EMERGENCY);
-    lcd.setCursor(0,0);             // set the LCD cursor   position 
-    lcd.print(" EMERGENCY STOP ");
+    lcd_key = read_LCD_buttons();        // read the buttons
+    
+    if (digitalRead(EMERGENCY_STOP_PIN)==LOW)
+    {
+      mainMonitor.setGlobalPower(EMERGENCY);
+      locoNetCmdStation.sendOPC_GP(EMERGENCY);
+      lcd.setCursor(0,0);               // set the LCD cursor   position 
+      lcd.print(" EMERGENCY STOP ");
+    }
+    else if ((mainMonitor.globalPowerON!=ON) && (digitalRead(PWON_BUTTON_PIN)==LOW || lcd_key==btnLEFT))
+    {
+      mainMonitor.setGlobalPower(ON);
+      locoNetCmdStation.sendOPC_GP(ON);
+      lcd.setCursor(0,0);               // set the LCD cursor   position 
+      lcd.print(" POWER ON       ");
+    }
+    else if ((mainMonitor.globalPowerON!=OFF) && (digitalRead(PWOFF_BUTTON_PIN)==LOW || lcd_key==btnRIGHT))
+    {
+      mainMonitor.setGlobalPower(OFF);
+      locoNetCmdStation.sendOPC_GP(OFF);
+      lcd.setCursor(0,0);               // set the LCD cursor   position 
+      lcd.print(" POWER OFF      ");
+    }
   }
-  else if ((mainMonitor.globalPowerON!=ON) && (digitalRead(PWON_BUTTON_PIN)==LOW || lcd_key==btnLEFT))
-  {
-    mainMonitor.setGlobalPower(ON);
-    locoNetCmdStation.sendOPC_GP(ON);
-    lcd.setCursor(0,0);             // set the LCD cursor   position 
-    lcd.print(" POWER ON       ");
-  }
-  else if ((mainMonitor.globalPowerON!=OFF) && (digitalRead(PWOFF_BUTTON_PIN)==LOW || lcd_key==btnRIGHT))
-  {
-    mainMonitor.setGlobalPower(OFF);
-    locoNetCmdStation.sendOPC_GP(OFF);
-    lcd.setCursor(0,0);             // set the LCD cursor   position 
-    lcd.print(" POWER OFF      ");
-  }  
   
 } // loop
 
@@ -276,9 +279,9 @@ void setup(){
 
   lcd.begin(16, 2);               // start the library
   lcd.setCursor(0,0);             // set the LCD cursor   position 
-  lcd.print("DCC++ Loconet");  // print a simple message on the LCD
+  lcd.print("DCC++ Loconet");     // print a simple message on the LCD
   lcd.setCursor(0,1);             // set the LCD cursor   position 
-  lcd.print("ClubNCaldes (c)");  // print a simple message on the LCD
+  lcd.print("ClubNCaldes (c)");   // print a simple message on the LCD
    
   //Indication pins
   pinMode(PROG_RELAY1, OUTPUT);
@@ -298,10 +301,10 @@ void setup(){
   
   LocoNet.init(47);
   
-  Serial.begin(115200);            // configure serial interface
+  Serial.begin(115200);                                              // configure serial interface
   Serial.flush();
 
-  Serial.print("<iDCC++ BASE STATION MEGA FOR ARDUINO ");      // Print Status to Serial Line regardless of COMM_TYPE setting so use can open Serial Monitor and check configurtion 
+  Serial.print("<iDCC++ BASE STATION MEGA FOR ARDUINO ");            // Print Status to Serial Line regardless of COMM_TYPE setting so usee can open Serial Monitor and check configuration 
   Serial.print(ARDUINO_TYPE);
   Serial.print(" / ");
   Serial.print(MOTOR_SHIELD_NAME);
@@ -311,7 +314,7 @@ void setup(){
   Serial.print(__TIME__);
   Serial.println(">");
             
-  SerialCommand::init(&mainRegs, &progRegs, &mainMonitor);   // create structure to read and parse commands from serial line
+  SerialCommand::init(&mainRegs, &progRegs, &mainMonitor);            // create structure to read and parse commands from serial line
   
   locoNetCmdStation.init(&mainRegs, &progRegs, &mainMonitor, &lcd);   // create structure to read and parse commands from Loconet
 
@@ -328,10 +331,10 @@ void setup(){
   #define DCC_ONE_BIT_TOTAL_DURATION_TIMER1 1855
   #define DCC_ONE_BIT_PULSE_DURATION_TIMER1 927
 
-  pinMode(DIRECTION_MOTOR_CHANNEL_PIN_A,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
+  pinMode(DIRECTION_MOTOR_CHANNEL_PIN_A,INPUT);                        // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_A,LOW);
 
-  pinMode(DCC_SIGNAL_PIN_MAIN, OUTPUT);      // THIS ARDUINO OUPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-A OF MOTOR CHANNEL-A
+  pinMode(DCC_SIGNAL_PIN_MAIN, OUTPUT);                                // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-A OF MOTOR CHANNEL-A
 
   bitSet(TCCR1A,WGM10);     // set Timer 1 to FAST PWM, with TOP=OCR1A
   bitSet(TCCR1A,WGM11);
@@ -348,11 +351,11 @@ void setup(){
   OCR1A=DCC_ONE_BIT_TOTAL_DURATION_TIMER1;
   OCR1B=DCC_ONE_BIT_PULSE_DURATION_TIMER1;
   
-  pinMode(SIGNAL_ENABLE_PIN_MAIN,OUTPUT);   // master enable for motor channel A
+  pinMode(SIGNAL_ENABLE_PIN_MAIN,OUTPUT);                 // master enable for motor channel A
 
   mainRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1    
       
-  bitSet(TIMSK1,OCIE1B);    // enable interrupt vector for Timer 1 Output Compare B Match (OCR1B)    
+  bitSet(TIMSK1,OCIE1B);                                  // enable interrupt vector for Timer 1 Output Compare B Match (OCR1B)    
 
   // Directon Pin for Motor Shield Channel B - PROGRAMMING TRACK
   // Controlled by Arduino 16-bit TIMER 3 / OC3B Interrupt Pin
@@ -365,31 +368,31 @@ void setup(){
   #define DCC_ONE_BIT_TOTAL_DURATION_TIMER3 1855
   #define DCC_ONE_BIT_PULSE_DURATION_TIMER3 927
 
-  pinMode(DIRECTION_MOTOR_CHANNEL_PIN_B,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
+  pinMode(DIRECTION_MOTOR_CHANNEL_PIN_B,INPUT);           // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_B,LOW);
 
-  pinMode(DCC_SIGNAL_PIN_PROG,OUTPUT);      // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-B OF MOTOR CHANNEL-B
+  pinMode(DCC_SIGNAL_PIN_PROG,OUTPUT);                    // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-B OF MOTOR CHANNEL-B
 
-  bitSet(TCCR3A,WGM30);     // set Timer 3 to FAST PWM, with TOP=OCR3A
+  bitSet(TCCR3A,WGM30);                                   // set Timer 3 to FAST PWM, with TOP=OCR3A
   bitSet(TCCR3A,WGM31);
   bitSet(TCCR3B,WGM32);
   bitSet(TCCR3B,WGM33);
 
-  bitSet(TCCR3A,COM3B1);    // set Timer 3, OC3B (pin 2) to inverting toggle (actual direction is arbitrary)
+  bitSet(TCCR3A,COM3B1);                                  // set Timer 3, OC3B (pin 2) to inverting toggle (actual direction is arbitrary)
   bitSet(TCCR3A,COM3B0);
 
-  bitClear(TCCR3B,CS32);    // set Timer 3 prescale=1
+  bitClear(TCCR3B,CS32);                                  // set Timer 3 prescale=1
   bitClear(TCCR3B,CS31);
   bitSet(TCCR3B,CS30);
     
   OCR3A=DCC_ONE_BIT_TOTAL_DURATION_TIMER3;
   OCR3B=DCC_ONE_BIT_PULSE_DURATION_TIMER3;
   
-  pinMode(SIGNAL_ENABLE_PIN_PROG,OUTPUT);   // master enable for motor channel B
+  pinMode(SIGNAL_ENABLE_PIN_PROG,OUTPUT);                 // master enable for motor channel B
 
   progRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1    
       
-  bitSet(TIMSK3,OCIE3B);    // enable interrupt vector for Timer 3 Output Compare B Match (OCR3B)    
+  bitSet(TIMSK3,OCIE3B);                                  // enable interrupt vector for Timer 3 Output Compare B Match (OCR3B)    
 
 
   
@@ -435,11 +438,11 @@ int read_LCD_buttons()
 // DCC ZERO and DCC ONE bits.
 
 // These are hardware-driven interrupts that will be called automatically when triggered regardless of what
-// DCC++ BASE STATION was otherwise processing.  But once inside the interrupt, all other interrupt routines are temporarily diabled.
+// DCC++ BASE STATION was otherwise processing.  But once inside the interrupt, all other interrupt routines are temporarily disabled.
 // Since a short pulse only lasts for 116 microseconds, and there are TWO separate interrupts
 // (one for Main Track Registers and one for the Program Track Registers), the interrupt code must complete
-// in much less than 58 microsends, otherwise there would be no time for the rest of the program to run.  Worse, if the logic
-// of the interrupt code ever caused it to run longer than 58 microsends, an interrupt trigger would be missed, the OCNA and OCNB
+// in much less than 58 microseconds, otherwise there would be no time for the rest of the program to run.  Worse, if the logic
+// of the interrupt code ever caused it to run longer than 58 microseconds, an interrupt trigger would be missed, the OCNA and OCNB
 // registers would not be updated, and the net effect would be a DCC signal that keeps sending the same DCC bit repeatedly until the
 // interrupt code completes and can be called again.
 
@@ -458,13 +461,13 @@ int read_LCD_buttons()
 
 #define DCC_SIGNAL(R,N)\
   if(R.currentBit==R.currentReg->activePacket->nBits){    /* IF no more bits in this DCC Packet */\
-    R.currentBit=0;                                       /*   reset current bit pointer and determine which Register and Packet to process next--- */\   
+    R.currentBit=0;                                       /*   reset current bit pointer and determine which Register and Packet to process next--- */\
     if(R.nRepeat>0 && R.currentReg==R.reg){               /*   IF current Register is first Register AND should be repeated */\
       R.nRepeat--;                                        /*     decrement repeat count; result is this same Packet will be repeated */\
     } else if(R.nextReg!=NULL){                           /*   ELSE IF another Register has been updated */\
       R.currentReg=R.nextReg;                             /*     update currentReg to nextReg */\
       R.nextReg=NULL;                                     /*     reset nextReg to NULL */\
-      R.tempPacket=R.currentReg->activePacket;            /*     flip active and update Packets */\ 
+      R.tempPacket=R.currentReg->activePacket;            /*     flip active and update Packets */\
       R.currentReg->activePacket=R.currentReg->updatePacket;\
       R.currentReg->updatePacket=R.tempPacket;\
     } else{                                               /*   ELSE simply move to next Register */\
@@ -480,9 +483,9 @@ int read_LCD_buttons()
   } else{                                                                              /* ELSE it is a ZERO */\
     OCR ## N ## A=DCC_ZERO_BIT_TOTAL_DURATION_TIMER ## N;                              /*   set OCRA for timer N to full cycle duration of DCC ZERO bit */\
     OCR ## N ## B=DCC_ZERO_BIT_PULSE_DURATION_TIMER ## N;                              /*   set OCRB for timer N to half cycle duration of DCC ZERO bit */\
-  }                                                                                    /* END-ELSE */\ 
+  }                                                                                    /* END-ELSE */\
 \ 
-  R.currentBit++;                                         /* point to next bit in current Packet */  
+  R.currentBit++;                                         /* point to next bit in current Packet */
   
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -15,6 +15,7 @@ Part of DCC++ BASE STATION for the Arduino
 // See SerialCommand::parse() below for defined text commands.
 
 #include "SerialCommand.h"
+#include "LNetCmdStation.h"
 #include "DCCpp_Uno.h"
 
 extern int __heap_start, *__brkval;
@@ -25,6 +26,7 @@ char SerialCommand::commandString[MAX_COMMAND_LENGTH+1];
 volatile RegisterList *SerialCommand::mRegs;
 volatile RegisterList *SerialCommand::pRegs;
 CurrentMonitor *SerialCommand::mMonitor;
+LNetCmdStation *LNetCmdStation;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -41,13 +43,13 @@ void SerialCommand::process()
 {
   char c;
   
-    while(INTERFACE.available()>0){    // while there is data on the serial line
+    while(INTERFACE.available()>0){                       // while there is data on the serial line
      c=INTERFACE.read();
-     if(c=='<')                    // start of new command
+     if(c=='<')                                           // start of new command
        sprintf(commandString,"");
-     else if(c=='>')               // end of new command
+     else if(c=='>')                                      // end of new command
        parse(commandString);                    
-     else if(strlen(commandString)<MAX_COMMAND_LENGTH)    // if comandString still has space, append character just read from serial line
+     else if(strlen(commandString)<MAX_COMMAND_LENGTH)    // if commandString still has space, append character just read from serial line
        sprintf(commandString,"%s%c",commandString,c);     // otherwise, character is ignored (but continue to look for '<' or '>')
     }
 } // SerialCommand:process
@@ -286,6 +288,7 @@ void SerialCommand::parse(char *com){
      digitalWrite(SIGNAL_ENABLE_PIN_PROG,HIGH);
      digitalWrite(SIGNAL_ENABLE_PIN_MAIN,HIGH);
      INTERFACE.print("<p1>");
+     LNetCmdStation->sendOPC_GP(ON);
      break;
           
 /***** TURN OFF POWER FROM MOTOR SHIELD TO TRACKS  ****/    
@@ -299,6 +302,7 @@ void SerialCommand::parse(char *com){
      digitalWrite(SIGNAL_ENABLE_PIN_PROG,LOW);
      digitalWrite(SIGNAL_ENABLE_PIN_MAIN,LOW);
      INTERFACE.print("<p0>");
+     LNetCmdStation->sendOPC_GP(OFF);
      break;
 
 /***** READ MAIN OPERATIONS TRACK CURRENT  ****/    
@@ -363,7 +367,7 @@ void SerialCommand::parse(char *com){
 /*
  *    stores settings for turnouts and sensors EEPROM
  *    
- *    returns: <e nTurnouts nSensors>
+ *    returns: <e nTurnouts nSensors nOutputs>
 */
      
     /*EEStore::store(); TODO*/
@@ -398,7 +402,7 @@ void SerialCommand::parse(char *com){
 /// PLEASE SEE SPECIFIC WANRINGS IN EACH COMMAND BELOW
 ///
 
-/***** WRITE A DCC PACKET TO ONE OF THE REGSITERS DRIVING THE MAIN OPERATIONS TRACK  ****/    
+/***** WRITE A DCC PACKET TO ONE OF THE REGISTERS DRIVING THE MAIN OPERATIONS TRACK  ****/    
       
     case 'M':       // <M REGISTER BYTE1 BYTE2 [BYTE3] [BYTE4] [BYTE5]>
 /*
@@ -417,7 +421,7 @@ void SerialCommand::parse(char *com){
       mRegs->writeTextPacket(com+1);
       break;
 
-/***** WRITE A DCC PACKET TO ONE OF THE REGSITERS DRIVING THE MAIN OPERATIONS TRACK  ****/    
+/***** WRITE A DCC PACKET TO ONE OF THE REGISTERS DRIVING THE PROGRAMMING TRACK  ****/    
 
     case 'P':       // <P REGISTER BYTE1 BYTE2 [BYTE3] [BYTE4] [BYTE5]>
 /*

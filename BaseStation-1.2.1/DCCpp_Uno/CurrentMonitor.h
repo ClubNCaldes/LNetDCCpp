@@ -24,7 +24,7 @@ Part of DCC++ BASE STATION for the Arduino
 
 #define PWON_BUTTON_PIN 30               // power on push button
 #define PWOFF_BUTTON_PIN 31              // power off push button
-#define EMERGENCY_STOP_PIN 32        // external emergency stop
+#define EMERGENCY_STOP_PIN 32            // external emergency stop
 #define PWON_LED_PIN 34                  // green led for POWER ON
 #define PWOFF_LED_PIN 35                 // red led for POWER OFF
 #define EMERGENCY_LED_PIN 33
@@ -37,7 +37,7 @@ struct CurrentMonitor{
   int pin;
   float current;
   char *msg;
-  CurrentMonitor(int, char *);
+  CurrentMonitor(int, const char *);
   static boolean checkTime();
   boolean check();
   void setGlobalPower(uint8_t);

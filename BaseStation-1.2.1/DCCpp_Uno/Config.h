@@ -16,6 +16,13 @@ Part of DCC++ BASE STATION for the Arduino
 
 #define MOTOR_SHIELD_TYPE   0
 
+// SET THIS TO 1 IF THE MOTOR SHIELD HAS CURRENT FEEDBACK
+// SET THIS TO 0 IF THE MOTOR SHIELD DOES NOT HAVE CURRENT FEEDBACK
+#define MOTOR_SHIELD_SUPPORTS_FEEDBACK 0
+
+// SET TO ANYTHING OTHER THAN 0 TO RUN WITHOUT BUTTONS
+#define NO_BUTTONS          0         
+
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // DEFINE NUMBER OF MAIN TRACK REGISTER
